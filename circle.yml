@@ -1,0 +1,23 @@
+machine:
+  python:
+    version: 3.5.2
+  node:
+    version: 6.7.0
+
+dependencies:
+  pre:
+    - pip install -r requirements-testing.txt
+  post:
+    - npm install -g aglio
+
+test:
+  override:
+    - python -m tornado.testing discover -s tokenrep/test
+
+deployment:
+  development:
+    branch: master
+    commands:
+      - git clone --depth 1 git@github.com:dgasio/docs.git $HOME/docs
+      - $HOME/docs/deploy-blueprint.sh $CIRCLE_PROJECT_REPONAME docs/api.apib $CIRCLE_SHA1
+      - git push -f git@heroku.com:token-rep-service-development.git $CIRCLE_SHA1:master
