@@ -61,6 +61,7 @@ are provided.
 
 ```
 heroku ps:scale web:1
+heroku ps:scale worker:1
 ```
 
 ## Running tests
