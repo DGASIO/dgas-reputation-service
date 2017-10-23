@@ -32,6 +32,6 @@ class Application(asyncpg.web.Application):
 
 def main():
     app = asyncpg.web.Application(urls)
-    conn = redis.from_url(app.config['redis'].REDIS_URL)
+    conn = redis.from_url(app.config['redis']['url'])
     app.q = Queue(connection=conn)
     app.start()
