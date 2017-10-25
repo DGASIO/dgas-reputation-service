@@ -18,9 +18,9 @@ def render_review(review):
 class UpdateUserMixin:
 
     def update_user(self, user_address):
-        if hasattr(self.application, 'q') and \
-          'reputation' in self.application.config and \
-          'push_url' in self.application.config['reputation']:
+        if (hasattr(self.application, 'q') and
+                'reputation' in self.application.config and
+                'push_url' in self.application.config['reputation']):
             self.application.q.enqueue(
                 update_user_reputation,
                 dict(self.application.config['database']),

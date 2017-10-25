@@ -25,7 +25,7 @@ class Application(asyncpg.web.Application):
         if 'REPUTATION_PUSH_SIGNING_KEY' in os.environ:
             config['reputation']['signing_key'] = os.environ['REPUTATION_PUSH_SIGNING_KEY']
         if 'REPUTATION_PUSH_URL' in os.environ:
-            config['reputation']['url'] = os.environ['REPUTATION_PUSH_URL']
+            config['reputation']['push_url'] = os.environ['REPUTATION_PUSH_URL']
 
         return config
 
