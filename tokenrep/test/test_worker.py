@@ -20,11 +20,26 @@ TEST_ADDRESS = "0x056db290f8ba3250ca64a45d16284d04bc6f5fbf"
 
 TEST_ADDRESS_2 = "0x056db290f8ba3250ca64a45d16284d04bc000000"
 
-# def run_worker(conn):
-#     with Connection(conn):
-#         w = Worker(map(Queue, worker.listen))
-#         print('working...')
-#         w.work()
+def build_database_url(**dsn):
+    if 'host' in dsn and dsn['host'] is not None:
+        if 'user' in dsn and dsn['user'] is not None:
+            username = '{}'.format(dsn['user'])
+        else:
+            username = ''
+        if 'password' in dsn and dsn['password'] is not None:
+            password = ':{}@'.format(dsn['password'])
+        else:
+            password = '@' if username else ''
+        if 'database' not in dsn:
+            raise Exception("Missing database from postgres dsn")
+        if 'port' in dsn:
+            port = ":{}".format(dsn['port'])
+        else:
+            port = ''
+        return 'postgres://{}{}{}{}/{}'.format(username, password, dsn['host'], port, dsn['database'])
+    elif 'url' in dsn:
+        return dsn['url']
+    raise NotImplementedError
 
 class TestPushHandler(RequestVerificationMixin, BaseHandler):
 
@@ -64,6 +79,7 @@ class RatingsTest(AsyncHandlerTest):
 
         env['PYTHONPATH'] = '.'
         env['REDIS_URL'] = build_redis_url(**self._app.config['redis'])
+        env['DATABASE_URL'] = build_database_url(**self._app.config['database'])
 
         r = redis.from_url(env['REDIS_URL'])
 

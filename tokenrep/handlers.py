@@ -24,7 +24,6 @@ class UpdateUserMixin:
                 'push_url' in self.application.config['reputation']):
             self.application.q.enqueue(
                 update_user_reputation,
-                dict(self.application.config['database']),
                 self.application.config['reputation']['push_url'],
                 self.application.config['reputation']['signing_key'],
                 user_address)

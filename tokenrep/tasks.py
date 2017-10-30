@@ -3,6 +3,7 @@ import asyncpg
 import aiohttp
 import json
 import time
+import os
 
 from ethutils import private_key_to_address
 from dgasio.request import sign_request
@@ -63,6 +64,7 @@ async def _update_user_reputation(database_config, push_url, signing_key, review
 
     return
 
-def update_user_reputation(database_config, push_url, signing_key, reviewee_address):
+def update_user_reputation(push_url, signing_key, reviewee_address):
     loop = asyncio.get_event_loop()
+    database_config = {'dsn': os.environ['DATABASE_URL']}
     loop.run_until_complete(_update_user_reputation(database_config, push_url, signing_key, reviewee_address))
