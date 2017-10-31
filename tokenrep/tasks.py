@@ -4,6 +4,7 @@ import aiohttp
 import json
 import time
 import os
+import logging
 
 from ethutils import private_key_to_address
 from dgasio.request import sign_request
@@ -11,6 +12,8 @@ from tokenservices.handlers import (
     TOKEN_TIMESTAMP_HEADER,
     TOKEN_SIGNATURE_HEADER,
     TOKEN_ID_ADDRESS_HEADER)
+
+log = logging.getLogger('worker.log')
 
 async def _update_user_reputation(database_config, push_url, signing_key, reviewee_address):
     con = await asyncpg.connect(**database_config)
@@ -53,9 +56,12 @@ async def _update_user_reputation(database_config, push_url, signing_key, review
                                             TOKEN_ID_ADDRESS_HEADER: address,
                                             TOKEN_TIMESTAMP_HEADER: str(timestamp)},
                                         data=body) as response:
-                    print(response.status)
                     if response.status == 204 or response.status == 200:
                         terminate = True
+                    else:
+                        log.error("Error updating user details")
+                        log.error("URL: {}".format(push_url))
+                        log.error("User Address: {}".format(reviewee_address))
                     retries -= 1
                     if retries <= 0:
                         terminate = True
