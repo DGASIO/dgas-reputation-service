@@ -44,8 +44,13 @@ class SubmitReviewHandler(RequestVerificationMixin, DatabaseMixin, UpdateUserMix
 
         # validate user address
         user = self.json['reviewee']
+        # lowercase the address
+        user = user.lower()
         if not validate_address(user):
             raise JSONHTTPError(400, body={'errors': [{'id': 'invalid_address', 'message': 'Invalid User Address'}]})
+
+        if submitter == user:
+            raise JSONHTTPError(400, body={'errors': [{'id': 'invalid_reviewee', 'message': "Cannot review yourself!"}]})
 
         # validate the score
         score = self.json['score']
@@ -89,6 +94,8 @@ class DeleteReviewHandler(RequestVerificationMixin, DatabaseMixin, UpdateUserMix
 
         # validate user address
         user = self.json['reviewee']
+        # lowercase the address
+        user = user.lower()
         if not validate_address(user):
             raise JSONHTTPError(400, body={'errors': [{'id': 'invalid_address', 'message': 'Invalid User Address'}]})
 
@@ -140,12 +147,16 @@ class SearchReviewsHandler(DatabaseMixin, BaseHandler):
         sql_args = []
 
         if reviewee is not None:
+            # lowercase the address
+            reviewee = reviewee.lower()
             if not validate_address(reviewee):
                 raise JSONHTTPError(400, body={'errors': [{'id': 'invalid_address', 'message': 'Invalid Address for `reviewee`'}]})
             wheres.append("reviewee_address = ${}".format(len(wheres) + 1))
             sql_args.append(reviewee)
 
         if reviewer is not None:
+            # lowercase the address
+            reviewer = reviewer.lower()
             if not validate_address(reviewer):
                 raise JSONHTTPError(400, body={'errors': [{'id': 'invalid_address', 'message': 'Invalid Address for `reviewer`'}]})
             wheres.append("reviewer_address = ${}".format(len(wheres) + 1))

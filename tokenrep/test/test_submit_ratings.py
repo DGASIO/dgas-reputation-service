@@ -186,3 +186,45 @@ class RatingsTest(AsyncHandlerTest):
 
         self.assertEqual(len(rows), 1)
         self.assertEqual(rows[0]['reviewer_address'], reviews[1][0])
+
+    @gen_test
+    @requires_database
+    async def test_user_cannot_review_themselves(self):
+
+        score = 5.0
+        message = "et fantastisk menneske"
+
+        body = {
+            "reviewee": TEST_ADDRESS,
+            "score": score,
+            "review": message
+        }
+
+        resp = await self.fetch_signed("/review/submit", signing_key=TEST_PRIVATE_KEY, method="POST", body=body)
+        self.assertResponseCodeEqual(resp, 400)
+
+        async with self.pool.acquire() as con:
+            rows = await con.fetch("SELECT * FROM reviews WHERE reviewee_address = $1", TEST_ADDRESS)
+
+        self.assertEqual(len(rows), 0)
+
+    @gen_test
+    @requires_database
+    async def test_user_address_case_ignored(self):
+
+        score = 5.0
+        message = "et fantastisk menneske"
+
+        body = {
+            "reviewee": "0x{}".format(TEST_ADDRESS_2[2:].upper()),
+            "score": score,
+            "review": message
+        }
+
+        resp = await self.fetch_signed("/review/submit", signing_key=TEST_PRIVATE_KEY, method="POST", body=body)
+        self.assertResponseCodeEqual(resp, 204)
+
+        async with self.pool.acquire() as con:
+            rows = await con.fetch("SELECT * FROM reviews WHERE reviewee_address = $1", TEST_ADDRESS_2)
+
+        self.assertEqual(len(rows), 1)
