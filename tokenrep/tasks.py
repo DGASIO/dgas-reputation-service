@@ -15,8 +15,7 @@ from tokenservices.handlers import (
 
 log = logging.getLogger('worker.log')
 
-async def _update_user_reputation(database_config, push_url, signing_key, reviewee_address):
-    con = await asyncpg.connect(**database_config)
+async def calculate_user_reputation(con, reviewee_address):
     row = await con.fetchrow(
         "SELECT AVG(score), COUNT(score) FROM reviews WHERE reviewee_address = $1",
         reviewee_address)
@@ -28,6 +27,11 @@ async def _update_user_reputation(database_config, push_url, signing_key, review
         count = row['count']
         avg = row['avg']
         avg = round(avg * 10) / 10
+    return count, avg
+
+async def _update_user_reputation(database_config, push_url, signing_key, reviewee_address):
+    con = await asyncpg.connect(**database_config)
+    count, avg = await calculate_user_reputation(con, reviewee_address)
 
     path = '/' + push_url.split('/', 3)[-1]
     method = 'POST'

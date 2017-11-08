@@ -6,7 +6,7 @@ from asyncpg.log import log
 from tokenservices.handlers import RequestVerificationMixin
 from dgasio.utils import validate_address
 from decimal import Decimal, InvalidOperation
-from .tasks import update_user_reputation
+from .tasks import update_user_reputation, calculate_user_reputation
 
 def render_review(review):
     return {
@@ -113,21 +113,16 @@ class GetUserRatingHandler(DatabaseMixin, BaseHandler):
 
     async def get(self, reviewee):
 
+        reviewee = reviewee.lower()
         if not validate_address(reviewee):
             raise JSONHTTPError(400, body={'errors': [{'id': 'invalid_address', 'message': 'Invalid Address'}]})
 
         async with self.db:
-            row = await self.db.fetchrow(
-                "SELECT AVG(score), COUNT(score) FROM reviews WHERE reviewee_address = $1",
-                reviewee)
-
-        average = row['avg']
-        # round average down to 1 decimal point
-        average = round(average * 10) / 10
+            count, avg = await calculate_user_reputation(self.db, reviewee)
 
         self.write({
-            "average": average,
-            "count": row['count']
+            "average": avg,
+            "count": count
         })
 
 class SearchReviewsHandler(DatabaseMixin, BaseHandler):

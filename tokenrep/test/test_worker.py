@@ -50,7 +50,6 @@ class TestPushHandler(RequestVerificationMixin, BaseHandler):
             self.set_status(401)
             return
 
-        print(self.request.body)
         self.application.test_request_queue.put_nowait(self.json)
         self.set_status(204)
 
