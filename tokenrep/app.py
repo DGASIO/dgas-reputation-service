@@ -2,13 +2,13 @@ import os
 from . import handlers
 import asyncpg.web
 from tokenservices.handlers import GenerateTimestamp
-from rq import Queue, Connection
-from . import worker
+from rq import Queue
 import redis
 
 urls = [
     (r"^/v1/timestamp/?$", GenerateTimestamp),
 
+    (r"^/v1/search/review/?$", handlers.SearchReviewsHandler),
     (r"^/v1/review/submit/?$", handlers.SubmitReviewHandler),
     (r"^/v1/review/delete/?$", handlers.DeleteReviewHandler),
     (r"^/v1/user/(?P<reviewee>[^/]+)/?$", handlers.GetUserRatingHandler),

@@ -12,8 +12,10 @@ def render_review(review):
     return {
         "reviewer": review['reviewer_address'],
         "reviewee": review['reviewee_address'],
-        "score": review['score'],
-        "review": review['review']
+        "score": float(review['score']),
+        "review": review['review'],
+        "date": review['updated'].isoformat(),
+        "edited": review['created'] != review['updated']
     }
 
 class UpdateUserMixin:
@@ -132,8 +134,11 @@ class SearchReviewsHandler(DatabaseMixin, BaseHandler):
         reviewee = self.get_query_argument('reviewee', None)
         reviewer = self.get_query_argument('reviewer', None)
         oldest = self.get_query_argument('oldest', None)
-        offset = self.get_query_argument('offset', 0)
-        limit = self.get_query_argument('limit', 10)
+        try:
+            offset = int(self.get_query_argument('offset', 0))
+            limit = int(self.get_query_argument('limit', 10))
+        except ValueError:
+            raise JSONHTTPError(400, body={'errors': [{'id': 'bad_arguments', 'message': 'Bad Arguments'}]})
 
         if reviewee is None and reviewer is None:
             raise JSONHTTPError(400, body={'errors': [{'id': 'bad arguments', 'message': 'Bad Arguments'}]})
@@ -160,13 +165,18 @@ class SearchReviewsHandler(DatabaseMixin, BaseHandler):
         if oldest is not None:
             try:
                 oldest = iso8601.parse_date(oldest)
+                # remove the tzinfo so asyncpg can handle them
+                # fromutc adds the utc offset to the date, but doesn't remove the tzinfo
+                # so the final replace is to wipe that out (which doesn't adjust anything else)
+                oldest = oldest.tzinfo.fromutc(oldest).replace(tzinfo=None)
             except iso8601.ParseError:
                 raise JSONHTTPError(400, body={'errors': [{'id': 'invalid_date', 'message': 'Invalid date for `oldest`'}]})
             wheres.append("updated >= ${}".format(len(wheres) + 1))
             sql_args.append(oldest)
 
-        sql = "SELECT * FROM reviews WHERE {}".format(" AND ".join(wheres))
         cnt_sql = "SELECT COUNT(*) FROM reviews WHERE {}".format(" AND ".join(wheres))
+        sql = "SELECT * FROM reviews WHERE {} ORDER BY updated DESC OFFSET ${} LIMIT ${}".format(
+            " AND ".join(wheres), len(wheres) + 1, len(wheres) + 2)
 
         async with self.db:
             reviews = await self.db.fetch(sql, *sql_args + [offset, limit])
