@@ -23,15 +23,53 @@ async def calculate_user_reputation(con, reviewee_address):
     if row['count'] == 0:
         count = 0
         avg = None
+        stars = {
+            "0": 0,
+            "1": 0,
+            "2": 0,
+            "3": 0,
+            "4": 0,
+            "5": 0
+        }
     else:
         count = row['count']
         avg = row['avg']
         avg = round(avg * 10) / 10
-    return count, avg
+
+        # TODO: perhaps be smarter here (i.e. try do it in a single query)
+        star0 = await con.fetchrow(
+            "SELECT COUNT(score) FROM reviews WHERE reviewee_address = $1 AND score < 1.0",
+            reviewee_address)
+        star1 = await con.fetchrow(
+            "SELECT COUNT(score) FROM reviews WHERE reviewee_address = $1 AND score >= 1.0 AND score < 2.0",
+            reviewee_address)
+        star2 = await con.fetchrow(
+            "SELECT COUNT(score) FROM reviews WHERE reviewee_address = $1 AND score >= 2.0 AND score < 3.0",
+            reviewee_address)
+        star3 = await con.fetchrow(
+            "SELECT COUNT(score) FROM reviews WHERE reviewee_address = $1 AND score >= 3.0 AND score < 4.0",
+            reviewee_address)
+        star4 = await con.fetchrow(
+            "SELECT COUNT(score) FROM reviews WHERE reviewee_address = $1 AND score >= 4.0 AND score < 5.0",
+            reviewee_address)
+        star5 = await con.fetchrow(
+            "SELECT COUNT(score) FROM reviews WHERE reviewee_address = $1 AND score >= 5.0",
+            reviewee_address)
+
+        stars = {
+            "0": star0['count'],
+            "1": star1['count'],
+            "2": star2['count'],
+            "3": star3['count'],
+            "4": star4['count'],
+            "5": star5['count']
+        }
+
+    return count, avg, stars
 
 async def _update_user_reputation(database_config, push_url, signing_key, reviewee_address):
     con = await asyncpg.connect(**database_config)
-    count, avg = await calculate_user_reputation(con, reviewee_address)
+    count, avg, _ = await calculate_user_reputation(con, reviewee_address)
 
     path = '/' + push_url.split('/', 3)[-1]
     method = 'POST'

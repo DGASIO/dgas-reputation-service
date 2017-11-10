@@ -27,13 +27,17 @@ class RatingsTest(AsyncHandlerTest):
 
         message = "et fantastisk menneske"
         reviews = [
-            (private_key_to_address(os.urandom(32)), TEST_ADDRESS_2, 3.5, message),
-            (private_key_to_address(os.urandom(32)), TEST_ADDRESS_2, 3.0, message),
+            (private_key_to_address(os.urandom(32)), TEST_ADDRESS_2, 0, message),
+            (private_key_to_address(os.urandom(32)), TEST_ADDRESS_2, 1, message),
+            (private_key_to_address(os.urandom(32)), TEST_ADDRESS_2, 1.9, message),
+            (private_key_to_address(os.urandom(32)), TEST_ADDRESS_2, 2, message),
             (private_key_to_address(os.urandom(32)), TEST_ADDRESS_2, 2.5, message),
-            (private_key_to_address(os.urandom(32)), TEST_ADDRESS_2, 2.0, message),
-            (private_key_to_address(os.urandom(32)), TEST_ADDRESS_2, 2.0, message),
-            (private_key_to_address(os.urandom(32)), TEST_ADDRESS_2, 4.99999, message),
-            (private_key_to_address(os.urandom(32)), TEST_ADDRESS_2, 2.33333, message)
+            (private_key_to_address(os.urandom(32)), TEST_ADDRESS_2, 2.9, message),
+            (private_key_to_address(os.urandom(32)), TEST_ADDRESS_2, 3, message),
+            (private_key_to_address(os.urandom(32)), TEST_ADDRESS_2, 3.1, message),
+            (private_key_to_address(os.urandom(32)), TEST_ADDRESS_2, 3.2, message),
+            (private_key_to_address(os.urandom(32)), TEST_ADDRESS_2, 3.9, message),
+            (private_key_to_address(os.urandom(32)), TEST_ADDRESS_2, 5, message)
         ]
         average = sum([r[2] for r in reviews]) / len(reviews)
         average = round(average * 10) / 10
@@ -53,3 +57,9 @@ class RatingsTest(AsyncHandlerTest):
 
         self.assertEqual(body['average'], average)
         self.assertEqual(body['count'], len(reviews))
+        self.assertEqual(body['stars']["0"], 1)
+        self.assertEqual(body['stars']["1"], 2)
+        self.assertEqual(body['stars']["2"], 3)
+        self.assertEqual(body['stars']["3"], 4)
+        self.assertEqual(body['stars']["4"], 0)
+        self.assertEqual(body['stars']["5"], 1)

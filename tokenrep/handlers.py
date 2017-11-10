@@ -120,11 +120,12 @@ class GetUserRatingHandler(DatabaseMixin, BaseHandler):
             raise JSONHTTPError(400, body={'errors': [{'id': 'invalid_address', 'message': 'Invalid Address'}]})
 
         async with self.db:
-            count, avg = await calculate_user_reputation(self.db, reviewee)
+            count, avg, stars = await calculate_user_reputation(self.db, reviewee)
 
         self.write({
             "average": avg,
-            "count": count
+            "count": count,
+            "stars": stars,
         })
 
 class SearchReviewsHandler(DatabaseMixin, BaseHandler):
