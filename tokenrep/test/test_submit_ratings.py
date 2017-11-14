@@ -24,12 +24,12 @@ class RatingsTest(AsyncHandlerTest):
     @requires_database
     async def test_review_user(self):
 
-        score = 3.5
+        rating = 3.5
         message = "et fantastisk menneske"
 
         body = {
             "reviewee": TEST_ADDRESS_2,
-            "score": score,
+            "rating": rating,
             "review": message
         }
 
@@ -41,19 +41,19 @@ class RatingsTest(AsyncHandlerTest):
 
         self.assertEqual(len(rows), 1)
         self.assertEqual(rows[0]['reviewer_address'], TEST_ADDRESS)
-        self.assertEqual(rows[0]['score'], score)
+        self.assertEqual(rows[0]['rating'], rating)
         self.assertEqual(rows[0]['review'], message)
 
     @gen_test
     @requires_database
     async def test_review_user_without_signing(self):
 
-        score = 3.5
+        rating = 3.5
         message = "et fantastisk menneske"
 
         body = {
             "reviewee": TEST_ADDRESS_2,
-            "score": score,
+            "rating": rating,
             "review": message
         }
 
@@ -67,22 +67,22 @@ class RatingsTest(AsyncHandlerTest):
 
     @gen_test
     @requires_database
-    async def test_review_with_invalid_score(self):
+    async def test_review_with_invalid_rating(self):
 
-        scores = [5.5, "blah", None, -0.5, {"obj": 4}, "2/5",
+        ratings = [5.5, "blah", None, -0.5, {"obj": 4}, "2/5",
                   # valid decimal.Decimal values that we don't want to accept
                   [0, [3, 1, 4], -2], 'NaN', 'Inf', '-NaN', '-INF', "infinity", "-infinity"]
         message = "et fantastisk menneske"
 
-        for score in scores:
+        for rating in ratings:
             body = {
                 "reviewee": TEST_ADDRESS_2,
-                "score": score,
+                "rating": rating,
                 "review": message
             }
 
             resp = await self.fetch_signed("/review/submit", signing_key=TEST_PRIVATE_KEY, method="POST", body=body)
-            self.assertResponseCodeEqual(resp, 400, "Expected score '{}' to be invalid".format(score))
+            self.assertResponseCodeEqual(resp, 400, "Expected rating '{}' to be invalid".format(rating))
 
             async with self.pool.acquire() as con:
                 rows = await con.fetch("SELECT * FROM reviews WHERE reviewee_address = $1", TEST_ADDRESS_2)
@@ -93,7 +93,7 @@ class RatingsTest(AsyncHandlerTest):
     @requires_database
     async def test_review_with_invalid_message(self):
 
-        score = 3.0
+        rating = 3.0
         messages = [
             10000,
             {"obj": 123},
@@ -103,7 +103,7 @@ class RatingsTest(AsyncHandlerTest):
         for message in messages:
             body = {
                 "reviewee": TEST_ADDRESS_2,
-                "score": score,
+                "rating": rating,
                 "review": message
             }
 
@@ -120,25 +120,25 @@ class RatingsTest(AsyncHandlerTest):
     async def test_update_review(self):
 
         message = "et fantastisk menneske"
-        score = 3.0
+        rating = 3.0
         reviews = [
-            (TEST_ADDRESS, TEST_ADDRESS_2, score, message),
-            (private_key_to_address(os.urandom(32)), TEST_ADDRESS_2, score, message)
+            (TEST_ADDRESS, TEST_ADDRESS_2, rating, message),
+            (private_key_to_address(os.urandom(32)), TEST_ADDRESS_2, rating, message)
         ]
 
         async with self.pool.acquire() as con:
             for rev in reviews:
                 await con.execute(
-                    "INSERT INTO reviews (reviewer_address, reviewee_address, score, review) "
+                    "INSERT INTO reviews (reviewer_address, reviewee_address, rating, review) "
                     "VALUES ($1, $2, $3, $4)",
                     *rev)
 
         updated_message = "et veldig fantastisk menneske"
-        updated_score = 4.5
+        updated_rating = 4.5
 
         body = {
             "reviewee": TEST_ADDRESS_2,
-            "score": updated_score,
+            "rating": updated_rating,
             "review": updated_message
         }
 
@@ -149,14 +149,14 @@ class RatingsTest(AsyncHandlerTest):
             rows = await con.fetch("SELECT * FROM reviews WHERE reviewee_address = $1 AND reviewer_address = $2", TEST_ADDRESS_2, TEST_ADDRESS)
 
         self.assertEqual(len(rows), 1)
-        self.assertEqual(rows[0]['score'], updated_score)
+        self.assertEqual(rows[0]['rating'], updated_rating)
         self.assertEqual(rows[0]['review'], updated_message)
 
         async with self.pool.acquire() as con:
             rows = await con.fetch("SELECT * FROM reviews WHERE reviewee_address = $1 AND reviewer_address != $2", TEST_ADDRESS_2, TEST_ADDRESS)
 
         self.assertEqual(len(rows), 1)
-        self.assertEqual(rows[0]['score'], score)
+        self.assertEqual(rows[0]['rating'], rating)
         self.assertEqual(rows[0]['review'], message)
 
     @gen_test
@@ -164,16 +164,16 @@ class RatingsTest(AsyncHandlerTest):
     async def test_delete_review(self):
 
         message = "et fantastisk menneske"
-        score = 3.0
+        rating = 3.0
         reviews = [
-            (TEST_ADDRESS, TEST_ADDRESS_2, score, message),
-            (private_key_to_address(os.urandom(32)), TEST_ADDRESS_2, score, message)
+            (TEST_ADDRESS, TEST_ADDRESS_2, rating, message),
+            (private_key_to_address(os.urandom(32)), TEST_ADDRESS_2, rating, message)
         ]
 
         async with self.pool.acquire() as con:
             for rev in reviews:
                 await con.execute(
-                    "INSERT INTO reviews (reviewer_address, reviewee_address, score, review) "
+                    "INSERT INTO reviews (reviewer_address, reviewee_address, rating, review) "
                     "VALUES ($1, $2, $3, $4)",
                     *rev)
 
@@ -191,12 +191,12 @@ class RatingsTest(AsyncHandlerTest):
     @requires_database
     async def test_user_cannot_review_themselves(self):
 
-        score = 5.0
+        rating = 5.0
         message = "et fantastisk menneske"
 
         body = {
             "reviewee": TEST_ADDRESS,
-            "score": score,
+            "rating": rating,
             "review": message
         }
 
@@ -212,12 +212,12 @@ class RatingsTest(AsyncHandlerTest):
     @requires_database
     async def test_user_address_case_ignored(self):
 
-        score = 5.0
+        rating = 5.0
         message = "et fantastisk menneske"
 
         body = {
             "reviewee": "0x{}".format(TEST_ADDRESS_2[2:].upper()),
-            "score": score,
+            "rating": rating,
             "review": message
         }
 

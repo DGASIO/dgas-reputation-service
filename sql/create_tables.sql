@@ -2,7 +2,7 @@ CREATE TABLE IF NOT EXISTS reviews (
     reviewer_address VARCHAR NOT NULL,
     reviewee_address VARCHAR NOT NULL,
 
-    score DECIMAL,
+    rating DECIMAL,
     review VARCHAR,
 
     created TIMESTAMP WITHOUT TIME ZONE DEFAULT (now() AT TIME ZONE 'utc'),

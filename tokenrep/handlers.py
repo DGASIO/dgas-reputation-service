@@ -12,7 +12,7 @@ def render_review(review):
     return {
         "reviewer": review['reviewer_address'],
         "reviewee": review['reviewee_address'],
-        "score": float(review['score']),
+        "rating": float(review['rating']),
         "review": review['review'],
         "date": review['updated'].isoformat(),
         "edited": review['created'] != review['updated']
@@ -41,7 +41,7 @@ class SubmitReviewHandler(RequestVerificationMixin, DatabaseMixin, UpdateUserMix
 
         submitter = self.verify_request()
 
-        if not all(x in self.json for x in ['reviewee', 'score']):
+        if not all(x in self.json for x in ['reviewee', 'rating']):
             raise JSONHTTPError(400, body={'errors': [{'id': 'bad_arguments', 'message': 'Bad Arguments'}]})
 
         # validate user address
@@ -54,17 +54,17 @@ class SubmitReviewHandler(RequestVerificationMixin, DatabaseMixin, UpdateUserMix
         if submitter == user:
             raise JSONHTTPError(400, body={'errors': [{'id': 'invalid_reviewee', 'message': "Cannot review yourself!"}]})
 
-        # validate the score
-        score = self.json['score']
-        if isinstance(score, (dict, list, type(None))):
-            score = Decimal(-1)
+        # validate the rating
+        rating = self.json['rating']
+        if isinstance(rating, (dict, list, type(None))):
+            rating = Decimal(-1)
         else:
             try:
-                score = Decimal(score)
+                rating = Decimal(rating)
             except (InvalidOperation, ValueError, TypeError):
-                score = Decimal(-1)
-        if score.is_nan() or score.is_infinite() or score < 0 or score > 5:
-            raise JSONHTTPError(400, body={'errors': [{'id': 'invalid_score', 'message': 'Invalid Score'}]})
+                rating = Decimal(-1)
+        if rating.is_nan() or rating.is_infinite() or rating < 0 or rating > 5:
+            raise JSONHTTPError(400, body={'errors': [{'id': 'invalid_rating', 'message': 'Invalid Rating'}]})
 
         # validate the message
         message = self.json.get('review', None)
@@ -74,12 +74,12 @@ class SubmitReviewHandler(RequestVerificationMixin, DatabaseMixin, UpdateUserMix
         # save the review, or replace an existing review
         async with self.db:
             await self.db.execute(
-                "INSERT INTO reviews (reviewer_address, reviewee_address, score, review) "
+                "INSERT INTO reviews (reviewer_address, reviewee_address, rating, review) "
                 "VALUES ($1, $2, $3, $4) "
                 "ON CONFLICT (reviewer_address, reviewee_address) "
                 "DO UPDATE "
-                "SET score = EXCLUDED.score, review = EXCLUDED.review, updated = (now() at time zone 'utc')",
-                submitter, user, score, message)
+                "SET rating = EXCLUDED.rating, review = EXCLUDED.review, updated = (now() at time zone 'utc')",
+                submitter, user, rating, message)
             await self.db.commit()
 
         self.set_status(204)
@@ -123,7 +123,7 @@ class GetUserRatingHandler(DatabaseMixin, BaseHandler):
             count, avg, stars = await calculate_user_reputation(self.db, reviewee)
 
         self.write({
-            "average": avg,
+            "score": avg,
             "count": count,
             "stars": stars,
         })

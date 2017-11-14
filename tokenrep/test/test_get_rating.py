@@ -45,7 +45,7 @@ class RatingsTest(AsyncHandlerTest):
         async with self.pool.acquire() as con:
             for rev in reviews:
                 await con.execute(
-                    "INSERT INTO reviews (reviewer_address, reviewee_address, score, review) "
+                    "INSERT INTO reviews (reviewer_address, reviewee_address, rating, review) "
                     "VALUES ($1, $2, $3, $4)",
                     *rev)
 
@@ -55,7 +55,7 @@ class RatingsTest(AsyncHandlerTest):
         body = json_decode(resp.body)
         print(body)
 
-        self.assertEqual(body['average'], average)
+        self.assertEqual(body['score'], average)
         self.assertEqual(body['count'], len(reviews))
         self.assertEqual(body['stars']["0"], 1)
         self.assertEqual(body['stars']["1"], 2)

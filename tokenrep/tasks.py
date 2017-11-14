@@ -17,7 +17,7 @@ log = logging.getLogger('worker.log')
 
 async def calculate_user_reputation(con, reviewee_address):
     row = await con.fetchrow(
-        "SELECT AVG(score), COUNT(score) FROM reviews WHERE reviewee_address = $1",
+        "SELECT AVG(rating), COUNT(rating) FROM reviews WHERE reviewee_address = $1",
         reviewee_address)
 
     if row['count'] == 0:
@@ -38,22 +38,22 @@ async def calculate_user_reputation(con, reviewee_address):
 
         # TODO: perhaps be smarter here (i.e. try do it in a single query)
         star0 = await con.fetchrow(
-            "SELECT COUNT(score) FROM reviews WHERE reviewee_address = $1 AND score < 1.0",
+            "SELECT COUNT(rating) FROM reviews WHERE reviewee_address = $1 AND rating < 1.0",
             reviewee_address)
         star1 = await con.fetchrow(
-            "SELECT COUNT(score) FROM reviews WHERE reviewee_address = $1 AND score >= 1.0 AND score < 2.0",
+            "SELECT COUNT(rating) FROM reviews WHERE reviewee_address = $1 AND rating >= 1.0 AND rating < 2.0",
             reviewee_address)
         star2 = await con.fetchrow(
-            "SELECT COUNT(score) FROM reviews WHERE reviewee_address = $1 AND score >= 2.0 AND score < 3.0",
+            "SELECT COUNT(rating) FROM reviews WHERE reviewee_address = $1 AND rating >= 2.0 AND rating < 3.0",
             reviewee_address)
         star3 = await con.fetchrow(
-            "SELECT COUNT(score) FROM reviews WHERE reviewee_address = $1 AND score >= 3.0 AND score < 4.0",
+            "SELECT COUNT(rating) FROM reviews WHERE reviewee_address = $1 AND rating >= 3.0 AND rating < 4.0",
             reviewee_address)
         star4 = await con.fetchrow(
-            "SELECT COUNT(score) FROM reviews WHERE reviewee_address = $1 AND score >= 4.0 AND score < 5.0",
+            "SELECT COUNT(rating) FROM reviews WHERE reviewee_address = $1 AND rating >= 4.0 AND rating < 5.0",
             reviewee_address)
         star5 = await con.fetchrow(
-            "SELECT COUNT(score) FROM reviews WHERE reviewee_address = $1 AND score >= 5.0",
+            "SELECT COUNT(rating) FROM reviews WHERE reviewee_address = $1 AND rating >= 5.0",
             reviewee_address)
 
         stars = {

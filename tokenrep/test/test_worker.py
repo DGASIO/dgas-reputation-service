@@ -93,7 +93,7 @@ class RatingsTest(AsyncHandlerTest):
 
         body = {
             "reviewee": TEST_ADDRESS_2,
-            "score": score,
+            "rating": score,
             "review": message
         }
 
