@@ -46,6 +46,43 @@ class RatingsTest(AsyncHandlerTest):
 
     @gen_test
     @requires_database
+    async def test_fail_when_review_exists(self):
+
+        message = "et fantastisk menneske"
+        rating = 3.0
+        reviews = [
+            (TEST_ADDRESS, TEST_ADDRESS_2, rating, message)
+        ]
+
+        async with self.pool.acquire() as con:
+            for rev in reviews:
+                await con.execute(
+                    "INSERT INTO reviews (reviewer_address, reviewee_address, rating, review) "
+                    "VALUES ($1, $2, $3, $4)",
+                    *rev)
+
+        updated_message = "et veldig fantastisk menneske"
+        updated_rating = 4.5
+
+        body = {
+            "reviewee": TEST_ADDRESS_2,
+            "rating": updated_rating,
+            "review": updated_message
+        }
+
+        resp = await self.fetch_signed("/review/submit", signing_key=TEST_PRIVATE_KEY, method="POST", body=body)
+        self.assertResponseCodeEqual(resp, 400)
+
+        async with self.pool.acquire() as con:
+            rows = await con.fetch("SELECT * FROM reviews WHERE reviewee_address = $1", TEST_ADDRESS_2)
+
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]['reviewer_address'], TEST_ADDRESS)
+        self.assertEqual(rows[0]['rating'], rating)
+        self.assertEqual(rows[0]['review'], message)
+
+    @gen_test
+    @requires_database
     async def test_review_user_without_signing(self):
 
         rating = 3.5
@@ -142,7 +179,7 @@ class RatingsTest(AsyncHandlerTest):
             "review": updated_message
         }
 
-        resp = await self.fetch_signed("/review/submit", signing_key=TEST_PRIVATE_KEY, method="POST", body=body)
+        resp = await self.fetch_signed("/review/submit", signing_key=TEST_PRIVATE_KEY, method="PUT", body=body)
         self.assertResponseCodeEqual(resp, 204)
 
         async with self.pool.acquire() as con:
@@ -158,6 +195,27 @@ class RatingsTest(AsyncHandlerTest):
         self.assertEqual(len(rows), 1)
         self.assertEqual(rows[0]['rating'], rating)
         self.assertEqual(rows[0]['review'], message)
+
+    @gen_test
+    @requires_database
+    async def test_fail_update_review_when_doesnt_exist(self):
+
+        updated_message = "et veldig fantastisk menneske"
+        updated_rating = 4.5
+
+        body = {
+            "reviewee": TEST_ADDRESS_2,
+            "rating": updated_rating,
+            "review": updated_message
+        }
+
+        resp = await self.fetch_signed("/review/submit", signing_key=TEST_PRIVATE_KEY, method="PUT", body=body)
+        self.assertResponseCodeEqual(resp, 400)
+
+        async with self.pool.acquire() as con:
+            rows = await con.fetch("SELECT * FROM reviews WHERE reviewee_address = $1 AND reviewer_address = $2", TEST_ADDRESS_2, TEST_ADDRESS)
+
+        self.assertEqual(len(rows), 0)
 
     @gen_test
     @requires_database

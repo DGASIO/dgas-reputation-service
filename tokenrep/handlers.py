@@ -1,3 +1,4 @@
+import asyncpg.exceptions
 import iso8601
 from asyncpg.handlers import BaseHandler
 from asyncpg.database import DatabaseMixin
@@ -37,7 +38,41 @@ class UpdateUserMixin:
 
 class SubmitReviewHandler(RequestVerificationMixin, DatabaseMixin, UpdateUserMixin, BaseHandler):
 
+    async def put(self):
+        submitter, user, rating, message = await self.validate()
+
+        async with self.db:
+            rval = await self.db.execute(
+                "UPDATE reviews "
+                "SET rating = $3, review = $4, updated = (now() at time zone 'utc') "
+                "WHERE reviewer_address = $1 AND reviewee_address = $2",
+                submitter, user, rating, message)
+            if rval == "UPDATE 0":
+                raise JSONHTTPError(400, body={'errors': [{'id': 'no_existing_review_found',
+                                                           'message': 'A review for that reviewee was not found to update'}]})
+            await self.db.commit()
+
+        self.set_status(204)
+        self.update_user(user)
+
     async def post(self):
+        submitter, user, rating, message = await self.validate()
+
+        # save the review, or replace an existing review
+        async with self.db:
+            try:
+                rval = await self.db.execute(
+                    "INSERT INTO reviews (reviewer_address, reviewee_address, rating, review) "
+                    "VALUES ($1, $2, $3, $4)",
+                    submitter, user, rating, message)
+                await self.db.commit()
+            except asyncpg.exceptions.UniqueViolationError:
+                raise JSONHTTPError(400, body={'errors': [{'id': 'review_already_exists', 'message': 'A review for that reviewee already exists'}]})
+
+        self.set_status(204)
+        self.update_user(user)
+
+    async def validate(self):
 
         submitter = self.verify_request()
 
@@ -71,19 +106,7 @@ class SubmitReviewHandler(RequestVerificationMixin, DatabaseMixin, UpdateUserMix
         if message and not isinstance(message, str):
             raise JSONHTTPError(400, body={'errors': [{'id': 'invalid_review', 'message': 'Invalid Review'}]})
 
-        # save the review, or replace an existing review
-        async with self.db:
-            await self.db.execute(
-                "INSERT INTO reviews (reviewer_address, reviewee_address, rating, review) "
-                "VALUES ($1, $2, $3, $4) "
-                "ON CONFLICT (reviewer_address, reviewee_address) "
-                "DO UPDATE "
-                "SET rating = EXCLUDED.rating, review = EXCLUDED.review, updated = (now() at time zone 'utc')",
-                submitter, user, rating, message)
-            await self.db.commit()
-
-        self.set_status(204)
-        self.update_user(user)
+        return submitter, user, rating, message
 
 class DeleteReviewHandler(RequestVerificationMixin, DatabaseMixin, UpdateUserMixin, BaseHandler):
 
