@@ -1,0 +1,370 @@
+FORMAT: 1A
+HOST: https://token-rep-service.herokuapp.com
+
+# Token Reputation Service
+
+This service stores user reviews of other users/apps and uses those to generate a reputation score.
+
+The generated reputation score adn the total number of reviews is sent to the id service.
+
+# Group Reviews
+
+## Submit/Update Review [/v1/review/submit]
+
+Used to submit a review and a rating for a user.
+
+If a review by the reviewer for the reviewee already exists, the review will be updated.
+
+### Submit Review [POST]
+
++ Request (application/json)
+
+    + Headers
+
+        Token-ID-Address: 0x676f7cb80c9ff6a55e8992d94bac9a3212282c3a
+        Token-Signature: 0xc39a479a92fe8d626324ff82a33684610ecd6b50714f59542a1ea558220ec6246a9193dd481078417b3b44d55933989587459d3dd50295d4da67d6580ac8646801
+        Token-Timestamp: 1480077346
+
+    + Body
+
+        {
+            "rating": 4,
+            "reviewee": "0x056db290f8ba3250ca64a45d16284d04bc6f5fbf",
+            "review": "This person is pretty nice"
+        }
+
++ Response 204
+
++ Response 400 (application/json)
+
+        {
+            "errors": [
+                {
+                    "id": "bad_arguments",
+                    "message": "Bad Arguments"
+                }
+            ]
+        }
+
++ Response 400 (application/json)
+
+        {
+            "errors": [
+                {
+                    "id": "invalid_address",
+                    "message": "Invalid User Address"
+                }
+            ]
+        }
+
++ Response 400 (application/json)
+
+        {
+            "errors": [
+                {
+                    "id": "invalid_reviewee",
+                    "message": "Cannot review yourself!"
+                }
+            ]
+        }
+
++ Response 400 (application/json)
+
+        {
+            "errors": [
+                {
+                    "id": "invalid_rating",
+                    "message": "Invalid Rating"
+                }
+            ]
+        }
+
+
++ Response 400 (application/json)
+
+        {
+            "errors": [
+                {
+                    "id": "invalid_review",
+                    "message": "Invalid Review"
+                }
+            ]
+        }
+
++ Response 400 (application/json)
+
+        {
+            "errors": [
+                {
+                    "id": "review_already_exists",
+                    "message": "A review for that reviewee already exists"
+                }
+            ]
+        }
+
+
++ Response 400 (application/json)
+
+        {
+            "errors": [
+                {
+                    "id": "invalid_signature",
+                    "message": "Invalid Signature"
+                }
+            ]
+        }
+
++ Response 400 (application/json)
+
+        {
+            "errors": [
+                {
+                    "id": "invalid_timestamp",
+                    "message": "The difference between the timestamp and the current time is too large"
+                }
+            ]
+        }
+
+### Update Review [PUT]
+
++ Request (application/json)
+
+    + Headers
+
+        Token-ID-Address: 0x676f7cb80c9ff6a55e8992d94bac9a3212282c3a
+        Token-Signature: 0xc39a479a92fe8d626324ff82a33684610ecd6b50714f59542a1ea558220ec6246a9193dd481078417b3b44d55933989587459d3dd50295d4da67d6580ac8646801
+        Token-Timestamp: 1480077346
+
+    + Body
+
+        {
+            "rating": 3,
+            "reviewee": "0x056db290f8ba3250ca64a45d16284d04bc6f5fbf",
+            "review": "This person is kinda nice"
+        }
+
++ Response 204
+
++ Response 400 (application/json)
+
+        {
+            "errors": [
+                {
+                    "id": "bad_arguments",
+                    "message": "Bad Arguments"
+                }
+            ]
+        }
+
++ Response 400 (application/json)
+
+        {
+            "errors": [
+                {
+                    "id": "invalid_address",
+                    "message": "Invalid User Address"
+                }
+            ]
+        }
+
++ Response 400 (application/json)
+
+        {
+            "errors": [
+                {
+                    "id": "invalid_reviewee",
+                    "message": "Cannot review yourself!"
+                }
+            ]
+        }
+
++ Response 400 (application/json)
+
+        {
+            "errors": [
+                {
+                    "id": "invalid_rating",
+                    "message": "Invalid Rating"
+                }
+            ]
+        }
+
+
++ Response 400 (application/json)
+
+        {
+            "errors": [
+                {
+                    "id": "invalid_review",
+                    "message": "Invalid Review"
+                }
+            ]
+        }
+
++ Response 400 (application/json)
+
+        {
+            "errors": [
+                {
+                    "id": "no_exiting_review_found",
+                    "message": "A review for that reviewee was not found to update"
+                }
+            ]
+        }
+
+
++ Response 400 (application/json)
+
+        {
+            "errors": [
+                {
+                    "id": "invalid_signature",
+                    "message": "Invalid Signature"
+                }
+            ]
+        }
+
++ Response 400 (application/json)
+
+        {
+            "errors": [
+                {
+                    "id": "invalid_timestamp",
+                    "message": "The difference between the timestamp and the current time is too large"
+                }
+            ]
+        }
+
++ Response 400 (application/json)
+
+        {
+            "errors": [
+                {
+                    "id": "missing_arguments",
+                    "message": "Missing arguments"
+                }
+            ]
+        }
+
+## Delete Review [/v1/review/delete]
+
+Used to delete the review for a given user
+
+### Delete Review [POST]
+
++ Request (application/json)
+
+    + Headers
+
+        Token-ID-Address: 0x676f7cb80c9ff6a55e8992d94bac9a3212282c3a
+        Token-Signature: 0xc39a479a92fe8d626324ff82a33684610ecd6b50714f59542a1ea558220ec6246a9193dd481078417b3b44d55933989587459d3dd50295d4da67d6580ac8646801
+        Token-Timestamp: 1480077346
+
+    + Body
+
+        {
+            "reviewee": "0x056db290f8ba3250ca64a45d16284d04bc6f5fbf"
+        }
+
++ Response 204
+
++ Response 400 (application/json)
+
+        {
+            "errors": [
+                {
+                    "id": "bad_arguments",
+                    "message": "Bad Arguments"
+                }
+            ]
+        }
+
++ Response 400 (application/json)
+
+        {
+            "errors": [
+                {
+                    "id": "invalid_address",
+                    "message": "Invalid User Address"
+                }
+            ]
+        }
+
+# Group Reputation Score
+
+## User [/v1/user/{tokenid}]
+
+Returns the user's reputation score and number of reviews per rating range.
+
+### Get Score [GET]
+
++ Response 200
+
+    + Body
+
+        {
+            "score": 2.6,
+            "count": 11,
+            "stars": {
+                "0": 1,
+                "1": 2,
+                "2": 3,
+                "3": 4,
+                "4": 0,
+                "5": 1
+            }
+        }
+
++ Response 400 (application/json)
+
+        {
+            "errors": [
+                {
+                    "id": "invalid_address",
+                    "message": "Invalid Address"
+                }
+            ]
+        }
+
+# Group Search
+
+## User [/v1/search/review/{?reviewer,reviewee,oldest,offset,limit}]
+
+Used to retreive reviews per user.
+
+NOTE: either `reviewer` or `reviewee` must be set in the request.
+
+### Search [GET]
+
++ Parameters
+    + reviewer: (token id) - If present filters by the reviewer's token id
+    + reviewee: (token id) - If present filters by the reviewee's token id
+    + oldest: (ISO8601 date string, optional) - Doesn't return any reviews older than the given date
+    + offset: (integer, optional) - Paging offset
+      + Default: `0`
+    + limit: (integer, optional) - Page size
+      + Default: `10`
+
++ Request
+    + Headers
+            Accept: application/json
+
++ Response 200 (application/json)
+  + Body
+
+    {
+      "limit": 10,
+      "offset": 0,
+      "total": 1,
+      "reviews": [
+        {
+          "reviewee": "0x056db290f8ba3250ca64a45d16284d04bc6f5fbf",
+          "reviewer": "0x676f7cb80c9ff6a55e8992d94bac9a3212282c3a",
+          "rating": 3.0,
+          "review": "This person is kinda nice",
+          "date": "2017-03-01T10:58:57.164427",
+          "updated": true
+        }
+      ],
+      "query": "reviewee=0x056db290f8ba3250ca64a45d16284d04bc6f5fbf"
+    }
