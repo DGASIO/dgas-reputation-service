@@ -60,8 +60,8 @@ are provided.
 ### Start
 
 ```
-heroku ps:scale web:1
-heroku ps:scale worker:1
+heroku ps:scale web=1
+heroku ps:scale worker=1
 ```
 
 ## Running tests
