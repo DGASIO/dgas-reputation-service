@@ -12,7 +12,6 @@ from asyncpg.test.database import requires_database
 from asyncpg.test.redis import requires_redis
 from tokenservices.test.base import AsyncHandlerTest
 from tokenservices.handlers import RequestVerificationMixin
-from ethutils import data_decoder, private_key_to_address
 from asyncpg.redis import build_redis_url
 
 TEST_PRIVATE_KEY = "0xe8f32e723decf4051aefac8e2c93c9c5b214313817cdb01a1494b917c8436b35"
@@ -73,6 +72,7 @@ class RatingsTest(AsyncHandlerTest):
             'push_url': self.get_url("/__push"),
             'signing_key': TEST_PRIVATE_KEY
         }
+        self._app.rep_push_urls = [self.get_url("/__push"), self.get_url("/__push"), self.get_url("/__push")]
 
         env = os.environ.copy()
 
@@ -100,7 +100,9 @@ class RatingsTest(AsyncHandlerTest):
         resp = await self.fetch_signed("/review/submit", signing_key=TEST_PRIVATE_KEY, method="POST", body=body)
         self.assertResponseCodeEqual(resp, 204)
 
-        req = await queue.get()
+        await queue.get()
+        await queue.get()
+        await queue.get()
 
         p1.terminate()
         p1.wait()

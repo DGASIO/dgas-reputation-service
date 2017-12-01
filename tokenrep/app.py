@@ -27,6 +27,11 @@ class Application(asyncpg.web.Application):
         if 'REPUTATION_PUSH_URL' in os.environ:
             config['reputation']['push_url'] = os.environ['REPUTATION_PUSH_URL']
 
+        if 'push_url' in config['reputation']:
+            self.rep_push_urls = config['reputation']['push_url'].split(',')
+        else:
+            self.rep_push_url = []
+
         return config
 
 

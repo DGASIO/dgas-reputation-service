@@ -67,12 +67,10 @@ async def calculate_user_reputation(con, reviewee_address):
 
     return count, avg, stars
 
-async def _update_user_reputation(database_config, push_url, signing_key, reviewee_address):
+async def _update_user_reputation(database_config, push_urls, signing_key, reviewee_address):
     con = await asyncpg.connect(**database_config)
     count, avg, _ = await calculate_user_reputation(con, reviewee_address)
 
-    path = '/' + push_url.split('/', 3)[-1]
-    method = 'POST'
     body = json.dumps({
         "address": reviewee_address,
         "count": count,
@@ -81,6 +79,18 @@ async def _update_user_reputation(database_config, push_url, signing_key, review
 
     address = private_key_to_address(signing_key)
 
+    futs = []
+    for push_url in push_urls:
+
+        futs.append(do_push(push_url, body, address, signing_key, reviewee_address))
+
+    await asyncio.gather(*futs)
+
+async def do_push(push_url, body, address, signing_key, reviewee_address):
+
+    path = '/' + push_url.split('/', 3)[-1]
+
+    method = 'POST'
     backoff = 5
     retries = 10
 
@@ -109,8 +119,6 @@ async def _update_user_reputation(database_config, push_url, signing_key, review
                         terminate = True
             await asyncio.sleep(backoff)
             backoff = min(backoff + 5, 30)
-
-    return
 
 def update_user_reputation(push_url, signing_key, reviewee_address):
     loop = asyncio.get_event_loop()
