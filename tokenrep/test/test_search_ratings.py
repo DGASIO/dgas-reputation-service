@@ -4,9 +4,9 @@ import iso8601
 from tornado.testing import gen_test
 from datetime import datetime, timedelta
 from tokenrep.app import urls
-from asyncpg.test.database import requires_database
+from tokenservices.test.database import requires_database
 from tokenservices.test.base import AsyncHandlerTest
-from ethutils import data_decoder, private_key_to_address
+from tokenservices.ethereum.utils import data_decoder, private_key_to_address
 from tornado.escape import json_decode
 import urllib.parse
 

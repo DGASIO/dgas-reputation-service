@@ -10,6 +10,7 @@ dependencies:
   pre:
     - pip install -r requirements-testing.txt
   post:
+    - pip install --upgrade -e git+ssh://git@raneeli.com:dgasio/dgasio/dgas-services-lib.git@$CIRCLE_BRANCH#egg=token-services || true
     - yarn global --cache-folder ${HOME}/.yarn/cache add aglio --prefix ${HOME}/.yarn
   cache_directories:
     - ${HOME}/.yarn

@@ -1,6 +1,6 @@
 import os
 from . import handlers
-import asyncpg.web
+import tokenservices.web
 from tokenservices.handlers import GenerateTimestamp
 from rq import Queue
 import redis
@@ -14,7 +14,7 @@ urls = [
     (r"^/v1/user/(?P<reviewee>[^/]+)/?$", handlers.GetUserRatingHandler),
 ]
 
-class Application(asyncpg.web.Application):
+class Application(tokenservices.web.Application):
 
     def process_config(self):
         config = super(Application, self).process_config()

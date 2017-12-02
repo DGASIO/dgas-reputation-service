@@ -1,11 +1,11 @@
 import asyncpg.exceptions
 import iso8601
-from asyncpg.handlers import BaseHandler
-from asyncpg.database import DatabaseMixin
-from asyncpg.errors import JSONHTTPError
-from asyncpg.log import log
+from tokenservices.handlers import BaseHandler
+from tokenservices.database import DatabaseMixin
+from tokenservices.errors import JSONHTTPError
+from tokenservices.log import log
 from tokenservices.handlers import RequestVerificationMixin
-from dgasio.utils import validate_address
+from tokenservices.utils import validate_address
 from decimal import Decimal, InvalidOperation
 from .tasks import update_user_reputation, calculate_user_reputation
 

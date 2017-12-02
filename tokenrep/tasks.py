@@ -6,8 +6,8 @@ import time
 import os
 import logging
 
-from ethutils import private_key_to_address
-from dgasio.request import sign_request
+from tokenservices.ethereum.utils import private_key_to_address
+from tokenservices.request import sign_request
 from tokenservices.handlers import (
     TOKEN_TIMESTAMP_HEADER,
     TOKEN_SIGNATURE_HEADER,

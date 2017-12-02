@@ -1,18 +1,18 @@
 import asyncio
 import os
 import sys
-from asyncpg.handlers import BaseHandler
+from tokenservices.handlers import BaseHandler
 from tornado.testing import gen_test
 from rq import Queue
 import redis
 import subprocess
 
 from tokenrep.app import urls
-from asyncpg.test.database import requires_database
-from asyncpg.test.redis import requires_redis
+from tokenservices.test.database import requires_database
+from tokenservices.test.redis import requires_redis
 from tokenservices.test.base import AsyncHandlerTest
 from tokenservices.handlers import RequestVerificationMixin
-from asyncpg.redis import build_redis_url
+from tokenservices.redis import build_redis_url
 
 TEST_PRIVATE_KEY = "0xe8f32e723decf4051aefac8e2c93c9c5b214313817cdb01a1494b917c8436b35"
 TEST_ADDRESS = "0x056db290f8ba3250ca64a45d16284d04bc6f5fbf"
