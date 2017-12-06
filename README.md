@@ -40,10 +40,12 @@ heroku addons:create heroku-redis:hobby-dev
 
 ```
 heroku buildpacks:add https://github.com/debitoor/ssh-private-key-buildpack.git
+heroku buildpacks:add https://github.com/weibeld/heroku-buildpack-run.git
 heroku buildpacks:add https://raneeli.com:dgasio/dgasio/heroku-buildpack-pgsql-stunnel.git
 heroku buildpacks:add heroku/python
 
 heroku config:set SSH_KEY=$(cat path/to/your/keys/id_rsa | base64)
+heroku config:set BUILDPACK_RUN=configure_environment.sh
 ```
 
 #### Extra Config variables

@@ -1,0 +1,1 @@
+-e git+ssh://git@raneeli.com:dgasio/dgasio/dgas-services-lib.git@production#egg=token-services
