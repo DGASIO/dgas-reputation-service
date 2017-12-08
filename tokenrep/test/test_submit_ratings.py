@@ -46,7 +46,7 @@ class RatingsTest(AsyncHandlerTest):
 
     @gen_test
     @requires_database
-    async def test_fail_when_review_exists(self):
+    async def test_overwrite_when_review_exists(self):
 
         message = "et fantastisk menneske"
         rating = 3.0
@@ -71,15 +71,23 @@ class RatingsTest(AsyncHandlerTest):
         }
 
         resp = await self.fetch_signed("/review/submit", signing_key=TEST_PRIVATE_KEY, method="POST", body=body)
-        self.assertResponseCodeEqual(resp, 400)
+        self.assertResponseCodeEqual(resp, 204)
 
         async with self.pool.acquire() as con:
             rows = await con.fetch("SELECT * FROM reviews WHERE reviewee_address = $1", TEST_ADDRESS_2)
 
         self.assertEqual(len(rows), 1)
         self.assertEqual(rows[0]['reviewer_address'], TEST_ADDRESS)
-        self.assertEqual(rows[0]['rating'], rating)
-        self.assertEqual(rows[0]['review'], message)
+        self.assertEqual(rows[0]['rating'], updated_rating)
+        self.assertEqual(rows[0]['review'], updated_message)
+
+        # make sure other reviews are unchanged
+        async with self.pool.acquire() as con:
+            rows = await con.fetch("SELECT * FROM reviews WHERE reviewee_address != $1", TEST_ADDRESS_2)
+        self.assertEqual(len(rows), len(reviews) - 1)
+        for row in rows:
+            self.assertEqual(row['rating'], rating)
+            self.assertEqual(row['review'], message)
 
     @gen_test
     @requires_database

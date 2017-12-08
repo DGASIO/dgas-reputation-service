@@ -60,14 +60,14 @@ class SubmitReviewHandler(RequestVerificationMixin, DatabaseMixin, UpdateUserMix
 
         # save the review, or replace an existing review
         async with self.db:
-            try:
-                rval = await self.db.execute(
-                    "INSERT INTO reviews (reviewer_address, reviewee_address, rating, review) "
-                    "VALUES ($1, $2, $3, $4)",
-                    submitter, user, rating, message)
-                await self.db.commit()
-            except asyncpg.exceptions.UniqueViolationError:
-                raise JSONHTTPError(400, body={'errors': [{'id': 'review_already_exists', 'message': 'A review for that reviewee already exists'}]})
+            await self.db.execute(
+                "INSERT INTO reviews (reviewer_address, reviewee_address, rating, review) "
+                "VALUES ($1, $2, $3, $4) "
+                "ON CONFLICT (reviewer_address, reviewee_address) DO UPDATE "
+                "SET rating = EXCLUDED.rating, review = EXCLUDED.review, "
+                "updated = (now() at time zone 'utc')",
+                submitter, user, rating, message)
+            await self.db.commit()
 
         self.set_status(204)
         self.update_user(user)
