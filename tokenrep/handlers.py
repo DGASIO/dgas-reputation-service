@@ -1,5 +1,6 @@
 import asyncpg.exceptions
 import iso8601
+import ipaddress
 from tokenservices.handlers import BaseHandler
 from tokenservices.database import DatabaseMixin
 from tokenservices.errors import JSONHTTPError
@@ -11,8 +12,8 @@ from .tasks import update_user_reputation, calculate_user_reputation
 
 def render_review(review):
     return {
-        "reviewer": review['reviewer_address'],
-        "reviewee": review['reviewee_address'],
+        "reviewer": review['reviewer_id'],
+        "reviewee": review['reviewee_id'],
         "rating": float(review['rating']),
         "review": review['review'],
         "date": review['updated'].isoformat(),
@@ -39,34 +40,42 @@ class UpdateUserMixin:
 class SubmitReviewHandler(RequestVerificationMixin, DatabaseMixin, UpdateUserMixin, BaseHandler):
 
     async def put(self):
-        submitter, user, rating, message = await self.validate()
+        submitter, user, rating, message, location = await self.validate()
 
         async with self.db:
             rval = await self.db.execute(
                 "UPDATE reviews "
                 "SET rating = $3, review = $4, updated = (now() at time zone 'utc') "
-                "WHERE reviewer_address = $1 AND reviewee_address = $2",
+                "WHERE reviewer_id = $1 AND reviewee_id = $2",
                 submitter, user, rating, message)
             if rval == "UPDATE 0":
                 raise JSONHTTPError(400, body={'errors': [{'id': 'no_existing_review_found',
                                                            'message': 'A review for that reviewee was not found to update'}]})
+            await self.db.execute(
+                "INSERT INTO review_locations (reviewer_id, geoname_id) "
+                "VALUES ($1, $2) ",
+                submitter, location)
             await self.db.commit()
 
         self.set_status(204)
         self.update_user(user)
 
     async def post(self):
-        submitter, user, rating, message = await self.validate()
+        submitter, user, rating, message, location = await self.validate()
 
         # save the review, or replace an existing review
         async with self.db:
             await self.db.execute(
-                "INSERT INTO reviews (reviewer_address, reviewee_address, rating, review) "
+                "INSERT INTO reviews (reviewer_id, reviewee_id, rating, review) "
                 "VALUES ($1, $2, $3, $4) "
-                "ON CONFLICT (reviewer_address, reviewee_address) DO UPDATE "
+                "ON CONFLICT (reviewer_id, reviewee_id) DO UPDATE "
                 "SET rating = EXCLUDED.rating, review = EXCLUDED.review, "
                 "updated = (now() at time zone 'utc')",
                 submitter, user, rating, message)
+            await self.db.execute(
+                "INSERT INTO review_locations (reviewer_id, geoname_id) "
+                "VALUES ($1, $2) ",
+                submitter, location)
             await self.db.commit()
 
         self.set_status(204)
@@ -106,7 +115,29 @@ class SubmitReviewHandler(RequestVerificationMixin, DatabaseMixin, UpdateUserMix
         if message and not isinstance(message, str):
             raise JSONHTTPError(400, body={'errors': [{'id': 'invalid_review', 'message': 'Invalid Review'}]})
 
-        return submitter, user, rating, message
+        for h in self.request.headers:
+            print("HEADER -- {}: {}".format(h, self.request.headers[h]))
+
+        ip_addr = self.request.remote_ip or "0.0.0.0"
+        if 'X-Forwarded-For' in self.request.headers:
+            ip_addr = self.request.headers['X-Forwarded-For']
+        try:
+            ip_addr = ipaddress.ip_address(ip_addr)
+            # fix issues with asyncpg not handling ip address netmask defaults
+            # correctly
+            ip_addr = "{}/{}".format(ip_addr, 32 if ip_addr.version == 4 else 128)
+            async with self.db:
+                row = await self.db.fetchrow(
+                    "SELECT geoname_id FROM geolite2_ip_addresses "
+                    "WHERE network >> $1", ip_addr)
+            location = row['geoname_id'] if row else None
+        except ValueError:
+            location = None
+        except asyncpg.exceptions.UndefinedTableError:
+            log.warning("Missing GeoLite2 database tables")
+            location = None
+
+        return submitter, user, rating, message, location
 
 class DeleteReviewHandler(RequestVerificationMixin, DatabaseMixin, UpdateUserMixin, BaseHandler):
 
@@ -127,7 +158,7 @@ class DeleteReviewHandler(RequestVerificationMixin, DatabaseMixin, UpdateUserMix
         # save the review, or replace an existing review
         async with self.db:
             await self.db.execute(
-                "DELETE FROM reviews WHERE reviewer_address = $1 AND reviewee_address = $2",
+                "DELETE FROM reviews WHERE reviewer_id = $1 AND reviewee_id = $2",
                 submitter, user)
             await self.db.commit()
 
@@ -175,7 +206,7 @@ class SearchReviewsHandler(DatabaseMixin, BaseHandler):
             reviewee = reviewee.lower()
             if not validate_address(reviewee):
                 raise JSONHTTPError(400, body={'errors': [{'id': 'invalid_address', 'message': 'Invalid Address for `reviewee`'}]})
-            wheres.append("reviewee_address = ${}".format(len(wheres) + 1))
+            wheres.append("reviewee_id = ${}".format(len(wheres) + 1))
             sql_args.append(reviewee)
 
         if reviewer is not None:
@@ -183,7 +214,7 @@ class SearchReviewsHandler(DatabaseMixin, BaseHandler):
             reviewer = reviewer.lower()
             if not validate_address(reviewer):
                 raise JSONHTTPError(400, body={'errors': [{'id': 'invalid_address', 'message': 'Invalid Address for `reviewer`'}]})
-            wheres.append("reviewer_address = ${}".format(len(wheres) + 1))
+            wheres.append("reviewer_id = ${}".format(len(wheres) + 1))
             sql_args.append(reviewer)
 
         if oldest is not None:

@@ -48,7 +48,7 @@ class RatingsTest(AsyncHandlerTest):
         async with self.pool.acquire() as con:
             for rev in reviews:
                 await con.execute(
-                    "INSERT INTO reviews (reviewer_address, reviewee_address, rating, review, created, updated) "
+                    "INSERT INTO reviews (reviewer_id, reviewee_id, rating, review, created, updated) "
                     "VALUES ($1, $2, $3, $4, $5, $6)",
                     *rev)
 

@@ -1,10 +1,12 @@
 import os
+import ipaddress
 from tornado.testing import gen_test
 
 from tokenrep.app import urls
 from tokenservices.test.database import requires_database
 from tokenservices.test.base import AsyncHandlerTest
 from tokenservices.ethereum.utils import data_decoder, private_key_to_address
+from .base import requires_geolite2_data
 
 TEST_PRIVATE_KEY = data_decoder("0xe8f32e723decf4051aefac8e2c93c9c5b214313817cdb01a1494b917c8436b35")
 TEST_ADDRESS = "0x056db290f8ba3250ca64a45d16284d04bc6f5fbf"
@@ -37,10 +39,10 @@ class RatingsTest(AsyncHandlerTest):
         self.assertResponseCodeEqual(resp, 204)
 
         async with self.pool.acquire() as con:
-            rows = await con.fetch("SELECT * FROM reviews WHERE reviewee_address = $1", TEST_ADDRESS_2)
+            rows = await con.fetch("SELECT * FROM reviews WHERE reviewee_id = $1", TEST_ADDRESS_2)
 
         self.assertEqual(len(rows), 1)
-        self.assertEqual(rows[0]['reviewer_address'], TEST_ADDRESS)
+        self.assertEqual(rows[0]['reviewer_id'], TEST_ADDRESS)
         self.assertEqual(rows[0]['rating'], rating)
         self.assertEqual(rows[0]['review'], message)
 
@@ -57,7 +59,7 @@ class RatingsTest(AsyncHandlerTest):
         async with self.pool.acquire() as con:
             for rev in reviews:
                 await con.execute(
-                    "INSERT INTO reviews (reviewer_address, reviewee_address, rating, review) "
+                    "INSERT INTO reviews (reviewer_id, reviewee_id, rating, review) "
                     "VALUES ($1, $2, $3, $4)",
                     *rev)
 
@@ -74,16 +76,16 @@ class RatingsTest(AsyncHandlerTest):
         self.assertResponseCodeEqual(resp, 204)
 
         async with self.pool.acquire() as con:
-            rows = await con.fetch("SELECT * FROM reviews WHERE reviewee_address = $1", TEST_ADDRESS_2)
+            rows = await con.fetch("SELECT * FROM reviews WHERE reviewee_id = $1", TEST_ADDRESS_2)
 
         self.assertEqual(len(rows), 1)
-        self.assertEqual(rows[0]['reviewer_address'], TEST_ADDRESS)
+        self.assertEqual(rows[0]['reviewer_id'], TEST_ADDRESS)
         self.assertEqual(rows[0]['rating'], updated_rating)
         self.assertEqual(rows[0]['review'], updated_message)
 
         # make sure other reviews are unchanged
         async with self.pool.acquire() as con:
-            rows = await con.fetch("SELECT * FROM reviews WHERE reviewee_address != $1", TEST_ADDRESS_2)
+            rows = await con.fetch("SELECT * FROM reviews WHERE reviewee_id != $1", TEST_ADDRESS_2)
         self.assertEqual(len(rows), len(reviews) - 1)
         for row in rows:
             self.assertEqual(row['rating'], rating)
@@ -106,7 +108,7 @@ class RatingsTest(AsyncHandlerTest):
         self.assertResponseCodeEqual(resp, 400)
 
         async with self.pool.acquire() as con:
-            rows = await con.fetch("SELECT * FROM reviews WHERE reviewee_address = $1", TEST_ADDRESS_2)
+            rows = await con.fetch("SELECT * FROM reviews WHERE reviewee_id = $1", TEST_ADDRESS_2)
 
         self.assertEqual(len(rows), 0)
 
@@ -130,7 +132,7 @@ class RatingsTest(AsyncHandlerTest):
             self.assertResponseCodeEqual(resp, 400, "Expected rating '{}' to be invalid".format(rating))
 
             async with self.pool.acquire() as con:
-                rows = await con.fetch("SELECT * FROM reviews WHERE reviewee_address = $1", TEST_ADDRESS_2)
+                rows = await con.fetch("SELECT * FROM reviews WHERE reviewee_id = $1", TEST_ADDRESS_2)
 
             self.assertEqual(len(rows), 0)
 
@@ -156,7 +158,7 @@ class RatingsTest(AsyncHandlerTest):
             self.assertResponseCodeEqual(resp, 400, "Expected message '{}' to be invalid".format(message))
 
             async with self.pool.acquire() as con:
-                rows = await con.fetch("SELECT * FROM reviews WHERE reviewee_address = $1", TEST_ADDRESS_2)
+                rows = await con.fetch("SELECT * FROM reviews WHERE reviewee_id = $1", TEST_ADDRESS_2)
 
             self.assertEqual(len(rows), 0)
 
@@ -174,7 +176,7 @@ class RatingsTest(AsyncHandlerTest):
         async with self.pool.acquire() as con:
             for rev in reviews:
                 await con.execute(
-                    "INSERT INTO reviews (reviewer_address, reviewee_address, rating, review) "
+                    "INSERT INTO reviews (reviewer_id, reviewee_id, rating, review) "
                     "VALUES ($1, $2, $3, $4)",
                     *rev)
 
@@ -191,14 +193,14 @@ class RatingsTest(AsyncHandlerTest):
         self.assertResponseCodeEqual(resp, 204)
 
         async with self.pool.acquire() as con:
-            rows = await con.fetch("SELECT * FROM reviews WHERE reviewee_address = $1 AND reviewer_address = $2", TEST_ADDRESS_2, TEST_ADDRESS)
+            rows = await con.fetch("SELECT * FROM reviews WHERE reviewee_id = $1 AND reviewer_id = $2", TEST_ADDRESS_2, TEST_ADDRESS)
 
         self.assertEqual(len(rows), 1)
         self.assertEqual(rows[0]['rating'], updated_rating)
         self.assertEqual(rows[0]['review'], updated_message)
 
         async with self.pool.acquire() as con:
-            rows = await con.fetch("SELECT * FROM reviews WHERE reviewee_address = $1 AND reviewer_address != $2", TEST_ADDRESS_2, TEST_ADDRESS)
+            rows = await con.fetch("SELECT * FROM reviews WHERE reviewee_id = $1 AND reviewer_id != $2", TEST_ADDRESS_2, TEST_ADDRESS)
 
         self.assertEqual(len(rows), 1)
         self.assertEqual(rows[0]['rating'], rating)
@@ -221,7 +223,7 @@ class RatingsTest(AsyncHandlerTest):
         self.assertResponseCodeEqual(resp, 400)
 
         async with self.pool.acquire() as con:
-            rows = await con.fetch("SELECT * FROM reviews WHERE reviewee_address = $1 AND reviewer_address = $2", TEST_ADDRESS_2, TEST_ADDRESS)
+            rows = await con.fetch("SELECT * FROM reviews WHERE reviewee_id = $1 AND reviewer_id = $2", TEST_ADDRESS_2, TEST_ADDRESS)
 
         self.assertEqual(len(rows), 0)
 
@@ -239,7 +241,7 @@ class RatingsTest(AsyncHandlerTest):
         async with self.pool.acquire() as con:
             for rev in reviews:
                 await con.execute(
-                    "INSERT INTO reviews (reviewer_address, reviewee_address, rating, review) "
+                    "INSERT INTO reviews (reviewer_id, reviewee_id, rating, review) "
                     "VALUES ($1, $2, $3, $4)",
                     *rev)
 
@@ -248,10 +250,10 @@ class RatingsTest(AsyncHandlerTest):
         self.assertResponseCodeEqual(resp, 204)
 
         async with self.pool.acquire() as con:
-            rows = await con.fetch("SELECT * FROM reviews WHERE reviewee_address = $1", TEST_ADDRESS_2)
+            rows = await con.fetch("SELECT * FROM reviews WHERE reviewee_id = $1", TEST_ADDRESS_2)
 
         self.assertEqual(len(rows), 1)
-        self.assertEqual(rows[0]['reviewer_address'], reviews[1][0])
+        self.assertEqual(rows[0]['reviewer_id'], reviews[1][0])
 
     @gen_test
     @requires_database
@@ -270,7 +272,7 @@ class RatingsTest(AsyncHandlerTest):
         self.assertResponseCodeEqual(resp, 400)
 
         async with self.pool.acquire() as con:
-            rows = await con.fetch("SELECT * FROM reviews WHERE reviewee_address = $1", TEST_ADDRESS)
+            rows = await con.fetch("SELECT * FROM reviews WHERE reviewee_id = $1", TEST_ADDRESS)
 
         self.assertEqual(len(rows), 0)
 
@@ -291,6 +293,86 @@ class RatingsTest(AsyncHandlerTest):
         self.assertResponseCodeEqual(resp, 204)
 
         async with self.pool.acquire() as con:
-            rows = await con.fetch("SELECT * FROM reviews WHERE reviewee_address = $1", TEST_ADDRESS_2)
+            rows = await con.fetch("SELECT * FROM reviews WHERE reviewee_id = $1", TEST_ADDRESS_2)
 
         self.assertEqual(len(rows), 1)
+
+    @gen_test(timeout=30)
+    @requires_database
+    @requires_geolite2_data
+    async def test_store_location_from_x_forwarded_for_ipv4(self):
+
+        rating = 3.5
+        message = "et fantastisk menneske"
+        x_forwarded_for = "1.2.3.4"
+        geoname_id = 6252001
+
+        body = {
+            "reviewee": TEST_ADDRESS_2,
+            "rating": rating,
+            "review": message
+        }
+
+        resp = await self.fetch_signed("/review/submit", signing_key=TEST_PRIVATE_KEY, method="POST",
+                                       headers={'X-Forwarded-For': x_forwarded_for},
+                                       body=body)
+        self.assertResponseCodeEqual(resp, 204)
+
+        async with self.pool.acquire() as con:
+            rows = await con.fetch("SELECT * FROM review_locations WHERE reviewer_id = $1", TEST_ADDRESS)
+
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]['geoname_id'], geoname_id)
+
+    @gen_test(timeout=30)
+    @requires_database
+    @requires_geolite2_data
+    async def test_store_location_from_x_forwarded_ipv6(self):
+
+        rating = 3.5
+        message = "et fantastisk menneske"
+        x_forwarded_for = "2001:8003:7136:1ef0:1292:24a7:b210:3064"
+        geoname_id = 2077456
+
+        body = {
+            "reviewee": TEST_ADDRESS_2,
+            "rating": rating,
+            "review": message
+        }
+
+        resp = await self.fetch_signed("/review/submit", signing_key=TEST_PRIVATE_KEY, method="POST",
+                                       headers={'X-Forwarded-For': x_forwarded_for},
+                                       body=body)
+        self.assertResponseCodeEqual(resp, 204)
+
+        async with self.pool.acquire() as con:
+            rows = await con.fetch("SELECT * FROM review_locations WHERE reviewer_id = $1", TEST_ADDRESS)
+
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]['geoname_id'], geoname_id)
+
+    @gen_test(timeout=30)
+    @requires_database
+    @requires_geolite2_data
+    async def test_doesnt_fail_on_invalid_address(self):
+
+        rating = 3.5
+        message = "et fantastisk menneske"
+        x_forwarded_for = "abcdefghijklmnop"
+
+        body = {
+            "reviewee": TEST_ADDRESS_2,
+            "rating": rating,
+            "review": message
+        }
+
+        resp = await self.fetch_signed("/review/submit", signing_key=TEST_PRIVATE_KEY, method="POST",
+                                       headers={'X-Forwarded-For': x_forwarded_for},
+                                       body=body)
+        self.assertResponseCodeEqual(resp, 204)
+
+        async with self.pool.acquire() as con:
+            rows = await con.fetch("SELECT * FROM review_locations WHERE reviewer_id = $1", TEST_ADDRESS)
+
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]['geoname_id'], None)
