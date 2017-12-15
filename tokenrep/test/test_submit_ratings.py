@@ -1,12 +1,14 @@
+import asyncio
 import os
-import ipaddress
 from tornado.testing import gen_test
+from functools import partial
 
 from tokenrep.app import urls
+from tokenrep import locations
 from tokenservices.test.database import requires_database
 from tokenservices.test.base import AsyncHandlerTest
 from tokenservices.ethereum.utils import data_decoder, private_key_to_address
-from .base import requires_geolite2_data
+from tokenrep.test.base import requires_geolite2_data
 
 TEST_PRIVATE_KEY = data_decoder("0xe8f32e723decf4051aefac8e2c93c9c5b214313817cdb01a1494b917c8436b35")
 TEST_ADDRESS = "0x056db290f8ba3250ca64a45d16284d04bc6f5fbf"
@@ -304,8 +306,8 @@ class RatingsTest(AsyncHandlerTest):
 
         rating = 3.5
         message = "et fantastisk menneske"
-        x_forwarded_for = "1.2.3.4"
-        geoname_id = 6252001
+        x_forwarded_for = "44.134.7.184"
+        location = 'US'
 
         body = {
             "reviewee": TEST_ADDRESS_2,
@@ -318,11 +320,13 @@ class RatingsTest(AsyncHandlerTest):
                                        body=body)
         self.assertResponseCodeEqual(resp, 204)
 
+        await asyncio.sleep(1)
+
         async with self.pool.acquire() as con:
             rows = await con.fetch("SELECT * FROM review_locations WHERE reviewer_id = $1", TEST_ADDRESS)
 
         self.assertEqual(len(rows), 1)
-        self.assertEqual(rows[0]['geoname_id'], geoname_id)
+        self.assertEqual(rows[0]['location'], location)
 
     @gen_test(timeout=30)
     @requires_database
@@ -332,7 +336,7 @@ class RatingsTest(AsyncHandlerTest):
         rating = 3.5
         message = "et fantastisk menneske"
         x_forwarded_for = "2001:8003:7136:1ef0:1292:24a7:b210:3064"
-        geoname_id = 2077456
+        location = "AU"
 
         body = {
             "reviewee": TEST_ADDRESS_2,
@@ -345,11 +349,13 @@ class RatingsTest(AsyncHandlerTest):
                                        body=body)
         self.assertResponseCodeEqual(resp, 204)
 
+        await asyncio.sleep(1)
+
         async with self.pool.acquire() as con:
             rows = await con.fetch("SELECT * FROM review_locations WHERE reviewer_id = $1", TEST_ADDRESS)
 
         self.assertEqual(len(rows), 1)
-        self.assertEqual(rows[0]['geoname_id'], geoname_id)
+        self.assertEqual(rows[0]['location'], location)
 
     @gen_test(timeout=30)
     @requires_database
@@ -371,8 +377,42 @@ class RatingsTest(AsyncHandlerTest):
                                        body=body)
         self.assertResponseCodeEqual(resp, 204)
 
+        await asyncio.sleep(1)
+
         async with self.pool.acquire() as con:
             rows = await con.fetch("SELECT * FROM review_locations WHERE reviewer_id = $1", TEST_ADDRESS)
 
         self.assertEqual(len(rows), 1)
-        self.assertEqual(rows[0]['geoname_id'], None)
+        self.assertEqual(rows[0]['location'], None)
+
+    @gen_test(timeout=30)
+    @requires_database
+    async def test_store_location_with_ip2c(self):
+
+        self._app.store_location = partial(
+            locations.store_review_location,
+            locations.get_location_from_ip2c, self._app.connection_pool)
+
+        rating = 3.5
+        message = "et fantastisk menneske"
+        x_forwarded_for = "44.134.7.184"
+        location = 'US'
+
+        body = {
+            "reviewee": TEST_ADDRESS_2,
+            "rating": rating,
+            "review": message
+        }
+
+        resp = await self.fetch_signed("/review/submit", signing_key=TEST_PRIVATE_KEY, method="POST",
+                                       headers={'X-Forwarded-For': x_forwarded_for},
+                                       body=body)
+        self.assertResponseCodeEqual(resp, 204)
+
+        await asyncio.sleep(5)
+
+        async with self.pool.acquire() as con:
+            rows = await con.fetch("SELECT * FROM review_locations WHERE reviewer_id = $1", TEST_ADDRESS)
+
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]['location'], location)

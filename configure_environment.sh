@@ -5,6 +5,9 @@ IFS=$'\n\t'
 if [ ! -z ${ENV_DIR+x} ]; then
     STAGE=$(cat "$ENV_DIR/STAGE")
     DATABASE_URL=$(cat "$ENV_DIR/DATABASE_URL")
+    if [ -e $ENV_DIR/USE_GEOLITE2 ]; then
+        USE_GEOLITE2=$(cat "$ENV_DIR/USE_GEOLITE2")
+    fi
 else
     STAGE="unknown"
 fi
@@ -18,7 +21,7 @@ fi
 cat requirements.txt
 
 ### geocode
-if [ ! -z ${DATABASE_URL+x} ]; then
+if [ ! -z ${USE_GEOLITE2+x} ] && [ ! -z ${DATABASE_URL+x} ]; then
     URL=http://geolite.maxmind.com/download/geoip/database/GeoLite2-Country-CSV_20170404.zip
     MD5SUM="5b7d4cd3955a8e773cc71deff71a4155"
     FILENAME=GeoLite2-Country-CSV_20170404.zip

@@ -1,6 +1,8 @@
 import asyncio
 import subprocess
 import os
+from functools import partial
+from tokenrep import locations
 
 def requires_geolite2_data(func=None):
     """runs the GeoLite2 import script before running the test"""
@@ -34,12 +36,17 @@ def requires_geolite2_data(func=None):
 
             env = os.environ.copy()
             env['DATABASE_URL'] = db_url
-            print(os.path.abspath(os.curdir))
+            env['USE_GEOLITE2'] = "1"
+
             with subprocess.Popen('./configure_environment.sh', env=env, cwd=os.path.abspath(os.curdir),
                                   shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE) as p:
                 print(p.stderr.read().decode('utf-8'))
                 if p.returncode is not None:
                     raise Exception("Error loading GeoLite2 data: returncode = {}".format(p.returncode))
+
+            self._app.store_location = partial(
+                locations.store_review_location,
+                locations.get_location_from_geolite2, self._app.connection_pool)
 
             f = fn(self, *args, **kwargs)
             if asyncio.iscoroutine(f):

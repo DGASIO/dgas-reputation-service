@@ -70,6 +70,7 @@ async def calculate_user_reputation(con, reviewee_id):
 async def _update_user_reputation(database_config, push_urls, signing_key, reviewee_id):
     con = await asyncpg.connect(**database_config)
     count, avg, _ = await calculate_user_reputation(con, reviewee_id)
+    await con.close()
 
     body = json.dumps({
         "address": reviewee_id,

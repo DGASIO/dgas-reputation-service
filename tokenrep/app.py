@@ -1,9 +1,11 @@
 import os
+from . import locations
 from . import handlers
 import tokenservices.web
 from tokenservices.handlers import GenerateTimestamp
 from rq import Queue
 import redis
+from functools import partial
 
 urls = [
     (r"^/v1/timestamp/?$", GenerateTimestamp),
@@ -31,6 +33,15 @@ class Application(tokenservices.web.Application):
             self.rep_push_urls = config['reputation']['push_url'].split(',')
         else:
             self.rep_push_url = []
+
+        if 'USE_GEOLITE2' in os.environ:
+            self.store_location = partial(
+                locations.store_review_location,
+                locations.get_location_from_geolite2, self.connection_pool)
+        else:
+            self.store_location = partial(
+                locations.store_review_location,
+                locations.get_location_from_ip2c, self.connection_pool)
 
         return config
 

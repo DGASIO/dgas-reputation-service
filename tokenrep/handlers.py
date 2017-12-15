@@ -7,6 +7,7 @@ from tokenservices.errors import JSONHTTPError
 from tokenservices.log import log
 from tokenservices.handlers import RequestVerificationMixin
 from tokenservices.utils import validate_address
+from tornado.ioloop import IOLoop
 from decimal import Decimal, InvalidOperation
 from .tasks import update_user_reputation, calculate_user_reputation
 
@@ -51,14 +52,12 @@ class SubmitReviewHandler(RequestVerificationMixin, DatabaseMixin, UpdateUserMix
             if rval == "UPDATE 0":
                 raise JSONHTTPError(400, body={'errors': [{'id': 'no_existing_review_found',
                                                            'message': 'A review for that reviewee was not found to update'}]})
-            await self.db.execute(
-                "INSERT INTO review_locations (reviewer_id, geoname_id) "
-                "VALUES ($1, $2) ",
-                submitter, location)
             await self.db.commit()
 
         self.set_status(204)
         self.update_user(user)
+        if hasattr(self.application, 'store_location'):
+            IOLoop.current().add_callback(self.application.store_location, submitter, location)
 
     async def post(self):
         submitter, user, rating, message, location = await self.validate()
@@ -72,14 +71,12 @@ class SubmitReviewHandler(RequestVerificationMixin, DatabaseMixin, UpdateUserMix
                 "SET rating = EXCLUDED.rating, review = EXCLUDED.review, "
                 "updated = (now() at time zone 'utc')",
                 submitter, user, rating, message)
-            await self.db.execute(
-                "INSERT INTO review_locations (reviewer_id, geoname_id) "
-                "VALUES ($1, $2) ",
-                submitter, location)
             await self.db.commit()
 
         self.set_status(204)
         self.update_user(user)
+        if hasattr(self.application, 'store_location'):
+            IOLoop.current().add_callback(self.application.store_location, submitter, location)
 
     async def validate(self):
 
@@ -121,23 +118,8 @@ class SubmitReviewHandler(RequestVerificationMixin, DatabaseMixin, UpdateUserMix
         ip_addr = self.request.remote_ip or "0.0.0.0"
         if 'X-Forwarded-For' in self.request.headers:
             ip_addr = self.request.headers['X-Forwarded-For']
-        try:
-            ip_addr = ipaddress.ip_address(ip_addr)
-            # fix issues with asyncpg not handling ip address netmask defaults
-            # correctly
-            ip_addr = "{}/{}".format(ip_addr, 32 if ip_addr.version == 4 else 128)
-            async with self.db:
-                row = await self.db.fetchrow(
-                    "SELECT geoname_id FROM geolite2_ip_addresses "
-                    "WHERE network >> $1", ip_addr)
-            location = row['geoname_id'] if row else None
-        except ValueError:
-            location = None
-        except asyncpg.exceptions.UndefinedTableError:
-            log.warning("Missing GeoLite2 database tables")
-            location = None
 
-        return submitter, user, rating, message, location
+        return submitter, user, rating, message, ip_addr
 
 class DeleteReviewHandler(RequestVerificationMixin, DatabaseMixin, UpdateUserMixin, BaseHandler):
 
