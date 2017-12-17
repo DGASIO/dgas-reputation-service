@@ -20,15 +20,28 @@ else
 fi
 cat requirements.txt
 
+if command -v md5sum &>/dev/null; then
+    MD5=md5sum
+elif command -v md5 &>/dev/null; then
+    MD5="md5 -r"
+else
+    echo "Unable to find suitable md5 calculator"
+    exit 1
+fi
+
 ### geocode
 if [ ! -z ${USE_GEOLITE2+x} ] && [ ! -z ${DATABASE_URL+x} ]; then
     URL=http://geolite.maxmind.com/download/geoip/database/GeoLite2-Country-CSV_20170404.zip
     MD5SUM="5b7d4cd3955a8e773cc71deff71a4155"
     FILENAME=GeoLite2-Country-CSV_20170404.zip
-    if [ ! -e $FILENAME ] || [ $(md5 < $FILENAME) == $MD5SUM ]; then
-        curl -s -S -o $FILENAME $URL
+    if [ -e $FILENAME ]; then
+        CHKSUM=$(eval $MD5 $FILENAME | grep --only-matching -m 1 '^[0-9a-f]*')
     fi
-    if [ $(md5 < $FILENAME) == $MD5SUM ]; then
+    if [ ! -e $FILENAME ] || [ $CHKSUM != $MD5SUM ]; then
+        curl -s -S -o $FILENAME $URL
+        CHKSUM=$(eval $MD5 $FILENAME | grep --only-matching -m 1 '^[0-9a-f]*')
+    fi
+    if [ $CHKSUM == $MD5SUM ]; then
         echo "IMPORTING GeoLite2 DB"
         unzip -o -j $FILENAME -d geolite2
         sed \

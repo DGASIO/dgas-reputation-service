@@ -40,6 +40,7 @@ def requires_geolite2_data(func=None):
 
             with subprocess.Popen('./configure_environment.sh', env=env, cwd=os.path.abspath(os.curdir),
                                   shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE) as p:
+                print(p.stdout.read().decode('utf-8'))
                 print(p.stderr.read().decode('utf-8'))
                 if p.returncode is not None:
                     raise Exception("Error loading GeoLite2 data: returncode = {}".format(p.returncode))
