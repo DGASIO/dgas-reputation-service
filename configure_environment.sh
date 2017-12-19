@@ -3,7 +3,11 @@ set -euo pipefail
 IFS=$'\n\t'
 
 if [ ! -z ${ENV_DIR+x} ]; then
-    STAGE=$(cat "$ENV_DIR/STAGE")
+    if [ -e $ENV_DIR/STAGE ]; then
+        STAGE=$(cat "$ENV_DIR/STAGE")
+    else
+        STAGE="development"
+    fi
     DATABASE_URL=$(cat "$ENV_DIR/DATABASE_URL")
     if [ -e $ENV_DIR/USE_GEOLITE2 ]; then
         USE_GEOLITE2=$(cat "$ENV_DIR/USE_GEOLITE2")
