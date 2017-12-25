@@ -34,6 +34,11 @@ class Application(tokenservices.web.Application):
         else:
             self.rep_push_url = []
 
+        return config
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
         if 'USE_GEOLITE2' in os.environ:
             self.store_location = partial(
                 locations.store_review_location,
@@ -42,8 +47,6 @@ class Application(tokenservices.web.Application):
             self.store_location = partial(
                 locations.store_review_location,
                 locations.get_location_from_ip2c, self.connection_pool)
-
-        return config
 
 
 def main():
