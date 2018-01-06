@@ -1,6 +1,7 @@
 import asyncpg.exceptions
 import iso8601
 import ipaddress
+from tokenservices.analytics import AnalyticsMixin
 from tokenservices.handlers import BaseHandler
 from tokenservices.database import DatabaseMixin
 from tokenservices.errors import JSONHTTPError
@@ -38,7 +39,7 @@ class UpdateUserMixin:
                 'reputation' in self.application.config,
                 'push_url' in self.application.config['reputation'] if 'reputation' in self.application.config else None))
 
-class SubmitReviewHandler(RequestVerificationMixin, DatabaseMixin, UpdateUserMixin, BaseHandler):
+class SubmitReviewHandler(RequestVerificationMixin, AnalyticsMixin, DatabaseMixin, UpdateUserMixin, BaseHandler):
 
     async def put(self):
         submitter, user, rating, message, location = await self.validate()
@@ -58,6 +59,8 @@ class SubmitReviewHandler(RequestVerificationMixin, DatabaseMixin, UpdateUserMix
         self.update_user(user)
         if hasattr(self.application, 'store_location'):
             IOLoop.current().add_callback(self.application.store_location, submitter, location)
+        self.track(submitter, "Gave Review", {"score": rating})
+        self.track(user, "Was reviewed", {"score": rating})
 
     async def post(self):
         submitter, user, rating, message, location = await self.validate()
@@ -77,6 +80,8 @@ class SubmitReviewHandler(RequestVerificationMixin, DatabaseMixin, UpdateUserMix
         self.update_user(user)
         if hasattr(self.application, 'store_location'):
             IOLoop.current().add_callback(self.application.store_location, submitter, location)
+        self.track(submitter, "Gave review", {"rating": rating})
+        self.track(user, "Was reviewed", {"rating": rating})
 
     async def validate(self):
 

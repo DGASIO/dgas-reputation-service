@@ -5,6 +5,7 @@ from functools import partial
 
 from tokenrep.app import urls
 from tokenrep import locations
+from tokenservices.analytics import encode_id
 from tokenservices.test.database import requires_database
 from tokenservices.test.base import AsyncHandlerTest
 from tokenservices.ethereum.utils import data_decoder, private_key_to_address
@@ -39,6 +40,16 @@ class RatingsTest(AsyncHandlerTest):
 
         resp = await self.fetch_signed("/review/submit", signing_key=TEST_PRIVATE_KEY, method="POST", body=body)
         self.assertResponseCodeEqual(resp, 204)
+
+        # ensure we get two tracking events
+        e1 = await self.next_tracking_event()
+        e2 = await self.next_tracking_event()
+        if e1[0] != encode_id(TEST_ADDRESS):
+            e1, e2 = e2, e1
+        self.assertEqual(e1[1], "Gave review")
+        self.assertEqual(e1[2]['rating'], 3.5)
+        self.assertEqual(e2[1], "Was reviewed")
+        self.assertEqual(e2[2]['rating'], 3.5)
 
         async with self.pool.acquire() as con:
             rows = await con.fetch("SELECT * FROM reviews WHERE reviewee_id = $1", TEST_ADDRESS_2)
