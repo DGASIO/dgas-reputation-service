@@ -4,6 +4,7 @@ import aiohttp
 import json
 import time
 import os
+import math
 import logging
 
 from tokenservices.ethereum.utils import private_key_to_address
@@ -15,9 +16,23 @@ from tokenservices.handlers import (
 
 log = logging.getLogger('worker.log')
 
+def starsort(ns):
+    """taken from https://stackoverflow.com/a/40958702"""
+    N = sum(ns)
+    K = len(ns)
+    s = list(range(K, 0, -1))
+    s2 = [sk**2 for sk in s]
+    z = 1.65
+    def f(s, ns):
+        N = sum(ns)
+        K = len(ns)
+        return sum(sk * (nk + 1) for sk, nk in zip(s, ns)) / (N + K)
+    fsns = f(s, ns)
+    return fsns - z * math.sqrt((f(s2, ns) - fsns ** 2) / (N + K + 1))
+
 async def calculate_user_reputation(con, reviewee_id):
     row = await con.fetchrow(
-        "SELECT AVG(rating), COUNT(rating) FROM reviews WHERE reviewee_id = $1",
+        "SELECT COUNT(rating) FROM reviews WHERE reviewee_id = $1",
         reviewee_id)
 
     if row['count'] == 0:
@@ -33,8 +48,6 @@ async def calculate_user_reputation(con, reviewee_id):
         }
     else:
         count = row['count']
-        avg = row['avg']
-        avg = round(avg * 10) / 10
 
         # TODO: perhaps be smarter here (i.e. try do it in a single query)
         star0 = await con.fetchrow(
@@ -64,6 +77,10 @@ async def calculate_user_reputation(con, reviewee_id):
             "4": star4['count'],
             "5": star5['count']
         }
+
+        # note: adding 0 and 1 stars together
+        avg = starsort((star5['count'], star4['count'], star3['count'], star2['count'], star1['count'] + star0['count']))
+        avg = round(avg * 10) / 10
 
     return count, avg, stars
 

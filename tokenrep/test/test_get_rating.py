@@ -3,6 +3,7 @@ from tornado.escape import json_decode
 from tornado.testing import gen_test
 
 from tokenrep.app import urls
+from tokenrep.tasks import starsort
 from tokenservices.test.database import requires_database
 from tokenservices.test.base import AsyncHandlerTest
 from tokenservices.ethereum.utils import data_decoder, data_encoder, private_key_to_address
@@ -39,7 +40,7 @@ class RatingsTest(AsyncHandlerTest):
             (private_key_to_address(os.urandom(32)), TEST_ADDRESS_2, 3.9, message),
             (private_key_to_address(os.urandom(32)), TEST_ADDRESS_2, 5, message)
         ]
-        average = sum([r[2] for r in reviews]) / len(reviews)
+        average = starsort((1, 0, 4, 3, 3))
         average = round(average * 10) / 10
 
         async with self.pool.acquire() as con:
