@@ -1,6 +1,7 @@
 import asyncpg.exceptions
 import iso8601
 import ipaddress
+import os
 from tokenservices.analytics import AnalyticsMixin
 from tokenservices.handlers import BaseHandler
 from tokenservices.database import DatabaseMixin
@@ -231,3 +232,19 @@ class SearchReviewsHandler(DatabaseMixin, BaseHandler):
             "offset": offset,
             "limit": limit
         })
+
+class ReprocessReviews(RequestVerificationMixin, UpdateUserMixin, DatabaseMixin, BaseHandler):
+    async def post(self):
+
+        submitter = self.verify_request()
+        if submitter != os.environ["ADMIN_ADDRESS"]:
+            raise JSONHTTPError(404, body={})
+
+        # save the review, or replace an existing review
+        async with self.db:
+            reviewees = await self.db.fetch("SELECT DISTINCT(reviewee_id) FROM reviews")
+
+        for reviewee in reviewees:
+            reviewee = reviewee['reviewee_id']
+            log.info("queuing review reporcessing for: {}".format(reviewee))
+            self.update_user(reviewee)

@@ -14,6 +14,9 @@ urls = [
     (r"^/v1/review/submit/?$", handlers.SubmitReviewHandler),
     (r"^/v1/review/delete/?$", handlers.DeleteReviewHandler),
     (r"^/v1/user/(?P<reviewee>[^/]+)/?$", handlers.GetUserRatingHandler),
+
+    # admin
+    (r"^/v1/admin/reprocess/?$", handlers.ReprocessReviews)
 ]
 
 class Application(tokenservices.web.Application):
