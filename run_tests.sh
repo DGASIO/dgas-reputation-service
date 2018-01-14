@@ -11,4 +11,4 @@ fi
 # if [ -e requirements-testing.txt ]; then
 #     env/bin/pip -q --exists-action=i install -r requirements-testing.txt
 # fi
-env/bin/python -m tornado.testing discover -s tokenrep/test
+env/bin/python -m tornado.testing discover -s dgasrep/test

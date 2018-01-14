@@ -12,7 +12,7 @@ env/bin/pip install -r requirements.txt
 ### Running
 
 ```
-DATABASE_URL=postgres://<postgres-dsn> REDIS_URL=redis://<redis-dsn> env/bin/python -m tokenrep
+DATABASE_URL=postgres://<postgres-dsn> REDIS_URL=redis://<redis-dsn> env/bin/python -m dgasrep
 ```
 
 ## Running on heroku
@@ -83,5 +83,5 @@ A convinience script exists to run all tests:
 To run a single test, use:
 
 ```
-env/bin/python -m tornado.testing tokenrep.test.<test-package>
+env/bin/python -m tornado.testing dgasrep.test.<test-package>
 ```

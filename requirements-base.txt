@@ -4,4 +4,3 @@ asyncpg==0.9.0
 iso8601==0.1.11
 rq==0.7.1
 aiohttp==1.3.3
--e git+ssh://git@raneeli.com:dgasio/dgasio/dgas-services-lib.git#egg=token-services

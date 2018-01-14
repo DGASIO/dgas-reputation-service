@@ -1,7 +1,7 @@
 FORMAT: 1A
 HOST: https://reputation.service.dgasio.com
 
-# Token Reputation Service
+# Dgas Reputation Service
 
 This service stores user reviews of other users/apps and uses those to generate a reputation score.
 
@@ -21,9 +21,9 @@ If a review by the reviewer for the reviewee already exists, the review will be 
 
     + Headers
 
-        Token-ID-Address: 0x676f7cb80c9ff6a55e8992d94bac9a3212282c3a
-        Token-Signature: 0xc39a479a92fe8d626324ff82a33684610ecd6b50714f59542a1ea558220ec6246a9193dd481078417b3b44d55933989587459d3dd50295d4da67d6580ac8646801
-        Token-Timestamp: 1480077346
+        Dgas-ID-Address: 0x676f7cb80c9ff6a55e8992d94bac9a3212282c3a
+        Dgas-Signature: 0xc39a479a92fe8d626324ff82a33684610ecd6b50714f59542a1ea558220ec6246a9193dd481078417b3b44d55933989587459d3dd50295d4da67d6580ac8646801
+        Dgas-Timestamp: 1480077346
 
     + Body
 
@@ -131,9 +131,9 @@ If a review by the reviewer for the reviewee already exists, the review will be 
 
     + Headers
 
-        Token-ID-Address: 0x676f7cb80c9ff6a55e8992d94bac9a3212282c3a
-        Token-Signature: 0xc39a479a92fe8d626324ff82a33684610ecd6b50714f59542a1ea558220ec6246a9193dd481078417b3b44d55933989587459d3dd50295d4da67d6580ac8646801
-        Token-Timestamp: 1480077346
+        Dgas-ID-Address: 0x676f7cb80c9ff6a55e8992d94bac9a3212282c3a
+        Dgas-Signature: 0xc39a479a92fe8d626324ff82a33684610ecd6b50714f59542a1ea558220ec6246a9193dd481078417b3b44d55933989587459d3dd50295d4da67d6580ac8646801
+        Dgas-Timestamp: 1480077346
 
     + Body
 
@@ -256,9 +256,9 @@ Used to delete the review for a given user
 
     + Headers
 
-        Token-ID-Address: 0x676f7cb80c9ff6a55e8992d94bac9a3212282c3a
-        Token-Signature: 0xc39a479a92fe8d626324ff82a33684610ecd6b50714f59542a1ea558220ec6246a9193dd481078417b3b44d55933989587459d3dd50295d4da67d6580ac8646801
-        Token-Timestamp: 1480077346
+        Dgas-ID-Address: 0x676f7cb80c9ff6a55e8992d94bac9a3212282c3a
+        Dgas-Signature: 0xc39a479a92fe8d626324ff82a33684610ecd6b50714f59542a1ea558220ec6246a9193dd481078417b3b44d55933989587459d3dd50295d4da67d6580ac8646801
+        Dgas-Timestamp: 1480077346
 
     + Body
 
@@ -292,7 +292,7 @@ Used to delete the review for a given user
 
 # Group Reputation Score
 
-## User [/v1/user/{tokenid}]
+## User [/v1/user/{dgasid}]
 
 Returns the user's reputation score and number of reviews per rating range.
 
@@ -337,8 +337,8 @@ NOTE: either `reviewer` or `reviewee` must be set in the request.
 ### Search [GET]
 
 + Parameters
-    + reviewer: (token id) - If present filters by the reviewer's token id
-    + reviewee: (token id) - If present filters by the reviewee's token id
+    + reviewer: (dgas id) - If present filters by the reviewer's dgas id
+    + reviewee: (dgas id) - If present filters by the reviewee's dgas id
     + oldest: (ISO8601 date string, optional) - Doesn't return any reviews older than the given date
     + offset: (integer, optional) - Paging offset
       + Default: `0`
