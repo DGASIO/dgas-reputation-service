@@ -72,6 +72,7 @@ class RatingsTest(AsyncHandlerTest):
             'push_url': self.get_url("/__push"),
             'signing_key': TEST_PRIVATE_KEY
         }
+        # set multiple push urls
         self._app.rep_push_urls = [self.get_url("/__push"), self.get_url("/__push"), self.get_url("/__push")]
 
         env = os.environ.copy()
@@ -100,7 +101,11 @@ class RatingsTest(AsyncHandlerTest):
         resp = await self.fetch_signed("/review/submit", signing_key=TEST_PRIVATE_KEY, method="POST", body=body)
         self.assertResponseCodeEqual(resp, 204)
 
-        await queue.get()
+        # check that push server got updates (3x for each push url set above)
+        update_request = await queue.get()
+        self.assertEqual(update_request['review_count'], 1)
+        self.assertEqual(update_request['average_rating'], 3.5)
+        self.assertIn('reputation_score', update_request)
         await queue.get()
         await queue.get()
 

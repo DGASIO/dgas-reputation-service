@@ -159,14 +159,19 @@ class GetUserRatingHandler(DatabaseMixin, BaseHandler):
 
         reviewee = reviewee.lower()
         if not validate_address(reviewee):
-            raise JSONHTTPError(400, body={'errors': [{'id': 'invalid_address', 'message': 'Invalid Address'}]})
+            raise JSONHTTPError(400, body={'errors': [{'id': 'invalid_dgas_id', 'message': 'Invalid Dgas Id'}]})
 
         async with self.db:
-            count, avg, stars = await calculate_user_reputation(self.db, reviewee)
+            score, count, avg, stars = await calculate_user_reputation(self.db, reviewee)
 
         self.write({
+            # NOTE: backwards compatibility
             "score": avg,
             "count": count,
+            # ======
+            "reputation_score": score,
+            "review_count": count,
+            "average_rating": avg,
             "stars": stars,
         })
 

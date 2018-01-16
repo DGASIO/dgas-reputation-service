@@ -40,7 +40,9 @@ class RatingsTest(AsyncHandlerTest):
             (private_key_to_address(os.urandom(32)), TEST_ADDRESS_2, 3.9, message),
             (private_key_to_address(os.urandom(32)), TEST_ADDRESS_2, 5, message)
         ]
-        average = starsort((1, 0, 4, 3, 3))
+        score = starsort((1, 0, 4, 3, 3))
+        score = round(score * 10) / 10
+        average = sum([x[2] for x in reviews]) / len(reviews)
         average = round(average * 10) / 10
 
         async with self.pool.acquire() as con:
@@ -56,8 +58,9 @@ class RatingsTest(AsyncHandlerTest):
         body = json_decode(resp.body)
         print(body)
 
-        self.assertEqual(body['score'], average)
-        self.assertEqual(body['count'], len(reviews))
+        self.assertEqual(body['reputation_score'], score)
+        self.assertEqual(body['review_count'], len(reviews))
+        self.assertEqual(body['average_rating'], average)
         self.assertEqual(body['stars']["0"], 1)
         self.assertEqual(body['stars']["1"], 2)
         self.assertEqual(body['stars']["2"], 3)

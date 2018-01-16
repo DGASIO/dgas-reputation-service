@@ -32,12 +32,13 @@ def starsort(ns):
 
 async def calculate_user_reputation(con, reviewee_id):
     row = await con.fetchrow(
-        "SELECT COUNT(rating) FROM reviews WHERE reviewee_id = $1",
+        "SELECT AVG(rating), COUNT(rating) FROM reviews WHERE reviewee_id = $1",
         reviewee_id)
 
     if row['count'] == 0:
         count = 0
-        avg = None
+        avg = 0
+        score = 0
         stars = {
             "0": 0,
             "1": 0,
@@ -48,6 +49,8 @@ async def calculate_user_reputation(con, reviewee_id):
         }
     else:
         count = row['count']
+        avg = row['avg']
+        avg = round(avg * 10) / 10
 
         # TODO: perhaps be smarter here (i.e. try do it in a single query)
         star0 = await con.fetchrow(
@@ -79,20 +82,21 @@ async def calculate_user_reputation(con, reviewee_id):
         }
 
         # note: adding 0 and 1 stars together
-        avg = starsort((star5['count'], star4['count'], star3['count'], star2['count'], star1['count'] + star0['count']))
-        avg = round(avg * 10) / 10
+        score = starsort((star5['count'], star4['count'], star3['count'], star2['count'], star1['count'] + star0['count']))
+        score = round(score * 10) / 10
 
-    return count, avg, stars
+    return score, count, avg, stars
 
 async def _update_user_reputation(database_config, push_urls, signing_key, reviewee_id):
     con = await asyncpg.connect(**database_config)
-    count, avg, _ = await calculate_user_reputation(con, reviewee_id)
+    score, count, avg, _ = await calculate_user_reputation(con, reviewee_id)
     await con.close()
 
     body = json.dumps({
-        "address": reviewee_id,
-        "count": count,
-        "score": avg
+        "dgas_id": reviewee_id,
+        "review_count": count,
+        "average_rating": avg,
+        "reputation_score": score
     })
 
     address = private_key_to_address(signing_key)
