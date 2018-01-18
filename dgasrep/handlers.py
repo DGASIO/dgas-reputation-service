@@ -60,8 +60,8 @@ class SubmitReviewHandler(RequestVerificationMixin, AnalyticsMixin, DatabaseMixi
         self.update_user(user)
         if hasattr(self.application, 'store_location'):
             IOLoop.current().add_callback(self.application.store_location, submitter, location)
-        self.track(submitter, "Gave Review", {"score": rating})
-        self.track(user, "Was reviewed", {"score": rating})
+        self.track(submitter, "Gave Review", {"score": float(rating)})
+        self.track(user, "Was reviewed", {"score": float(rating)})
 
     async def post(self):
         submitter, user, rating, message, location = await self.validate()
@@ -81,8 +81,8 @@ class SubmitReviewHandler(RequestVerificationMixin, AnalyticsMixin, DatabaseMixi
         self.update_user(user)
         if hasattr(self.application, 'store_location'):
             IOLoop.current().add_callback(self.application.store_location, submitter, location)
-        self.track(submitter, "Gave review", {"rating": rating})
-        self.track(user, "Was reviewed", {"rating": rating})
+        self.track(submitter, "Gave review", {"rating": float(rating)})
+        self.track(user, "Was reviewed", {"rating": float(rating)})
 
     async def validate(self):
 
