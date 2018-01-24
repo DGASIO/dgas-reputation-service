@@ -40,7 +40,6 @@ async def calculate_user_reputation(con, reviewee_id):
         avg = 0
         score = 0
         stars = {
-            "0": 0,
             "1": 0,
             "2": 0,
             "3": 0,
@@ -53,11 +52,8 @@ async def calculate_user_reputation(con, reviewee_id):
         avg = round(avg * 10) / 10
 
         # TODO: perhaps be smarter here (i.e. try do it in a single query)
-        star0 = await con.fetchrow(
-            "SELECT COUNT(rating) FROM reviews WHERE reviewee_id = $1 AND rating < 1.0",
-            reviewee_id)
         star1 = await con.fetchrow(
-            "SELECT COUNT(rating) FROM reviews WHERE reviewee_id = $1 AND rating >= 1.0 AND rating < 2.0",
+            "SELECT COUNT(rating) FROM reviews WHERE reviewee_id = $1 AND rating < 2.0",
             reviewee_id)
         star2 = await con.fetchrow(
             "SELECT COUNT(rating) FROM reviews WHERE reviewee_id = $1 AND rating >= 2.0 AND rating < 3.0",
@@ -73,7 +69,6 @@ async def calculate_user_reputation(con, reviewee_id):
             reviewee_id)
 
         stars = {
-            "0": star0['count'],
             "1": star1['count'],
             "2": star2['count'],
             "3": star3['count'],
@@ -81,8 +76,7 @@ async def calculate_user_reputation(con, reviewee_id):
             "5": star5['count']
         }
 
-        # note: adding 0 and 1 stars together
-        score = starsort((star5['count'], star4['count'], star3['count'], star2['count'], star1['count'] + star0['count']))
+        score = starsort((star5['count'], star4['count'], star3['count'], star2['count'], star1['count']))
         score = round(score * 10) / 10
 
     return score, count, avg, stars
