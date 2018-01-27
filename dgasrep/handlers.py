@@ -1,7 +1,6 @@
-import asyncpg.exceptions
 import iso8601
-import ipaddress
 import os
+from dgas.config import config
 from dgas.analytics import AnalyticsMixin
 from dgas.handlers import BaseHandler
 from dgas.database import DatabaseMixin
@@ -11,7 +10,7 @@ from dgas.handlers import RequestVerificationMixin
 from dgas.utils import validate_address
 from tornado.ioloop import IOLoop
 from decimal import Decimal, InvalidOperation
-from .tasks import update_user_reputation, calculate_user_reputation
+from dgasrep.tasks import update_user_reputation, calculate_user_reputation
 
 def render_review(review):
     return {
@@ -27,18 +26,18 @@ class UpdateUserMixin:
 
     def update_user(self, user_address):
         if (hasattr(self.application, 'q') and
-                'reputation' in self.application.config and
-                'push_url' in self.application.config['reputation']):
+                'reputation' in config and
+                'push_url' in config['reputation']):
             self.application.q.enqueue(
                 update_user_reputation,
                 self.application.rep_push_urls,
-                self.application.config['reputation']['signing_key'],
+                config['reputation']['signing_key'],
                 user_address)
         else:
             log.warn("Not updating users: {}, {}, {}".format(
                 hasattr(self.application, 'q'),
-                'reputation' in self.application.config,
-                'push_url' in self.application.config['reputation'] if 'reputation' in self.application.config else None))
+                'reputation' in config,
+                'push_url' in config['reputation'] if 'reputation' in config else None))
 
 class SubmitReviewHandler(RequestVerificationMixin, AnalyticsMixin, DatabaseMixin, UpdateUserMixin, BaseHandler):
 

@@ -402,7 +402,7 @@ class RatingsTest(AsyncHandlerTest):
 
         self._app.store_location = partial(
             locations.store_review_location,
-            locations.get_location_from_ip2c, self._app.connection_pool)
+            locations.get_location_from_ip2c, self.pool)
 
         rating = 3.5
         message = "et fantastisk menneske"

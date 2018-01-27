@@ -12,12 +12,24 @@ from dgas.test.database import requires_database
 from dgas.test.redis import requires_redis
 from dgas.test.base import AsyncHandlerTest
 from dgas.handlers import RequestVerificationMixin
-from dgas.redis import build_redis_url
+from dgas.config import config
 
 TEST_PRIVATE_KEY = "0xe8f32e723decf4051aefac8e2c93c9c5b214313817cdb01a1494b917c8436b35"
 TEST_ADDRESS = "0x056db290f8ba3250ca64a45d16284d04bc6f5fbf"
 
 TEST_ADDRESS_2 = "0x056db290f8ba3250ca64a45d16284d04bc000000"
+
+def build_redis_url(**dsn):
+    if 'unix_socket_path' in dsn and dsn['unix_socket_path'] is not None:
+        if 'password' in dsn and dsn['password'] is not None:
+            password = ':{}@'.format(dsn['password'])
+        else:
+            password = ''
+        db = '?db={}'.format(dsn['db'] if 'db' in dsn and dsn['db'] is not None else 0)
+        return 'unix://{}{}{}'.format(password, dsn['unix_socket_path'], db)
+    elif 'url' in dsn:
+        return dsn['url']
+    raise NotImplementedError
 
 def build_database_url(**dsn):
     if 'host' in dsn and dsn['host'] is not None:
@@ -68,7 +80,7 @@ class RatingsTest(AsyncHandlerTest):
 
         queue = self._app.test_request_queue = asyncio.Queue()
 
-        self._app.config['reputation'] = {
+        config['reputation'] = {
             'push_url': self.get_url("/__push"),
             'signing_key': TEST_PRIVATE_KEY
         }
@@ -78,8 +90,8 @@ class RatingsTest(AsyncHandlerTest):
         env = os.environ.copy()
 
         env['PYTHONPATH'] = '.'
-        env['REDIS_URL'] = build_redis_url(**self._app.config['redis'])
-        env['DATABASE_URL'] = build_database_url(**self._app.config['database'])
+        env['REDIS_URL'] = build_redis_url(**config['redis'])
+        env['DATABASE_URL'] = build_database_url(**config['database'])
 
         r = redis.from_url(env['REDIS_URL'])
 

@@ -3,6 +3,7 @@ import subprocess
 import os
 from functools import partial
 from dgasrep import locations
+from dgas.config import config
 
 def requires_geolite2_data(func=None):
     """runs the GeoLite2 import script before running the test"""
@@ -10,28 +11,28 @@ def requires_geolite2_data(func=None):
 
         async def wrapper(self, *args, **kwargs):
 
-            if 'database' not in self._app.config:
+            if 'database' not in config:
                 raise Exception("Missing @requires_database before @requires_geolite2_data")
 
-            if 'dsn' in self._app.config['database']:
-                db_url = self._app.config['database']['dsn']
+            if 'dsn' in config['database']:
+                db_url = config['database']['dsn']
             else:
-                if 'user' in self._app.config['database']:
-                    user = self._app.config['database']['user']
+                if 'user' in config['database']:
+                    user = config['database']['user']
                 else:
                     user = ''
-                if 'password' in self._app.config['database']:
-                    password = ':{}'.format(self._app.config['database']['password'])
+                if 'password' in config['database']:
+                    password = ':{}'.format(config['database']['password'])
                 else:
                     password = ''
                 if user or password:
                     user = '{}{}@'.format(user, password)
-                if 'port' in self._app.config['database']:
-                    port = ':{}'.format(self._app.config['database']['port'])
+                if 'port' in config['database']:
+                    port = ':{}'.format(config['database']['port'])
                 else:
                     port = ''
-                host = self._app.config['database'].get('host', '')
-                db = self._app.config['database'].get('database', '')
+                host = config['database'].get('host', '')
+                db = config['database'].get('database', '')
                 db_url = 'postgres://{}{}{}{}/{}'.format(user, password, host, port, db)
 
             env = os.environ.copy()
@@ -47,7 +48,7 @@ def requires_geolite2_data(func=None):
 
             self._app.store_location = partial(
                 locations.store_review_location,
-                locations.get_location_from_geolite2, self._app.connection_pool)
+                locations.get_location_from_geolite2, self.pool)
 
             f = fn(self, *args, **kwargs)
             if asyncio.iscoroutine(f):
